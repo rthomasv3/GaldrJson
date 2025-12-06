@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/GaldrJson.Tests/GaldrJson.Tests.csproj" />
+  </Folder>
+  <Project Path="GaldrJson/GaldrJson.csproj" />
+</Solution>
