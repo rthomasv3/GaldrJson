@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json;
 
 namespace GaldrJson
 {
@@ -21,5 +22,15 @@ namespace GaldrJson
         /// Returns true if the type can be serialized.
         /// </summary>
         bool CanSerialize(Type type);
+
+        /// <summary>
+        /// Writes the value using Utf8JsonWriter.
+        /// </summary>
+        void Write(Utf8JsonWriter writer, object value, Type type, JsonSerializerOptions options);
+
+        /// <summary>
+        /// Reads the value using Utf8JsonReader.
+        /// </summary>
+        object Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options);
     }
 }

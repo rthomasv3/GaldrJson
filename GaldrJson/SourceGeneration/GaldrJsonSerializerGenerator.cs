@@ -851,6 +851,14 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
 
             builder.AppendLine();
 
+            // Write Method
+            using (builder.Block("public void Write(Utf8JsonWriter writer, object value, Type type, JsonSerializerOptions options)"))
+            {
+                builder.AppendLine("WriteWithConverter(writer, value, type, options);");
+            }
+
+            builder.AppendLine();
+
             // Serialize method
             using (builder.Block("public string Serialize(object value, Type type)"))
             {
@@ -878,6 +886,14 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
                 builder.AppendLine();
                 builder.AppendLine("writer.Flush();");
                 builder.AppendLine("return System.Text.Encoding.UTF8.GetString(stream.ToArray());");
+            }
+
+            builder.AppendLine();
+
+            // Read Method
+            using (builder.Block("public object Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options)"))
+            {
+                builder.AppendLine("return ReadWithConverter(ref reader, type, options);");
             }
 
             builder.AppendLine();

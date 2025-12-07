@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\GaldrJson.AspNetCore\GaldrJson.AspNetCore.csproj" />
     <ProjectReference Include="..\..\GaldrJson\GaldrJson.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true" />
   </ItemGroup>
 

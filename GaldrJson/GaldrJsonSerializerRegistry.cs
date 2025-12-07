@@ -16,6 +16,9 @@
             _serializer = serializer;
         }
 
-        internal static IGaldrJsonTypeSerializer Serializer => _serializer;
+        /// <summary>
+        /// 
+        /// </summary>
+        public static IGaldrJsonTypeSerializer Serializer => _serializer;
     }
 }
