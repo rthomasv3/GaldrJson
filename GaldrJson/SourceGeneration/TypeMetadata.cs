@@ -184,18 +184,6 @@ namespace GaldrJson.SourceGeneration
                 return TypeKind.SystemType;
             }
 
-            // Check for collections
-            if (IsCollectionType(symbol))
-            {
-                return TypeKind.Collection;
-            }
-
-            // Check for dictionaries
-            if (IsDictionaryType(symbol))
-            {
-                return TypeKind.Dictionary;
-            }
-
             // Default to complex type
             return TypeKind.Complex;
         }
