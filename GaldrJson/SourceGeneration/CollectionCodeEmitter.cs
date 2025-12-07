@@ -3,8 +3,7 @@
 namespace GaldrJson.SourceGeneration
 {
     /// <summary>
-    /// Emits code for collection types (List&lt;T&gt;, T[], IEnumerable&lt;T&gt;).
-    /// TODO: Phase 2 - Implement full collection handling with helper methods.
+    /// Emits code for collection types (List, T[], IEnumerable).
     /// </summary>
     internal sealed class CollectionCodeEmitter : CodeEmitter
     {

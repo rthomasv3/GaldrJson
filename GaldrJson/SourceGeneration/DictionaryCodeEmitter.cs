@@ -3,8 +3,7 @@
 namespace GaldrJson.SourceGeneration
 {
     /// <summary>
-    /// Emits code for dictionary types (Dictionary&lt;K,V&gt;, IDictionary&lt;K,V&gt;).
-    /// TODO: Phase 2 - Implement full dictionary handling with helper methods.
+    /// Emits code for dictionary types (Dictionary, IDictionary).
     /// </summary>
     internal sealed class DictionaryCodeEmitter : CodeEmitter
     {

@@ -631,7 +631,7 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
         sb.AppendLine();
     }
 
-    private static string GetKeyConversionCode(GaldrJson.SourceGeneration.TypeMetadata keyMetadata)
+    private static string GetKeyConversionCode(TypeMetadata keyMetadata)
     {
         if (keyMetadata.IsEnum)
         {
@@ -750,19 +750,6 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
         var readCode = emitter.EmitRead("reader");
 
         sb.AppendLine($"                        {targetVariable}.{property.Name} = {readCode};");
-    }
-
-    private static string GetBaseTypeName(ITypeSymbol typeSymbol)
-    {
-        // Handle nullable types - get the underlying type name
-        if (typeSymbol.NullableAnnotation == NullableAnnotation.Annotated &&
-            typeSymbol is INamedTypeSymbol namedType &&
-            namedType.TypeArguments.Length == 1)
-        {
-            return namedType.TypeArguments[0].Name;
-        }
-
-        return typeSymbol.Name;
     }
 
     private static void GeneratePropertyWrite(StringBuilder sb, PropertyInfo property, TypeMetadataCache metadataCache)

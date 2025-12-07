@@ -4,7 +4,6 @@ namespace GaldrJson.SourceGeneration
 {
     /// <summary>
     /// Emits code for complex user-defined types requiring generated converters.
-    /// TODO: Phase 2 - Implement proper converter instantiation (with caching from Phase 3).
     /// </summary>
     internal sealed class ComplexTypeCodeEmitter : CodeEmitter
     {
