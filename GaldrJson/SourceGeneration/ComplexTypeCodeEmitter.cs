@@ -18,15 +18,20 @@ namespace GaldrJson.SourceGeneration
             return $"({Metadata.FullyQualifiedName})GeneratedJsonSerializer.ReadWithConverter(ref {readerVar}, typeof({Metadata.FullyQualifiedName}), options)";
         }
 
-        public override string EmitWrite(string writerVar, string valueExpr, string propertyName = null)
+        public override string EmitWrite(string writerVar, string valueExpr, string propertyName = null, string nameOverride = null)
         {
             var baseTypeName = GetBaseTypeName(Metadata.Symbol);
             var converterName = $"{baseTypeName}JsonConverter";
 
             // If we have a property name, write it first
-            if (propertyName != null)
+            if (nameOverride != null)
             {
-                return $@"{writerVar}.WritePropertyName(""{propertyName}"");
+                return $@"{writerVar}.WritePropertyName(""{nameOverride}"");
+            GeneratedJsonSerializer.WriteWithConverter({writerVar}, {valueExpr}, typeof({Metadata.FullyQualifiedName}), options);";
+            }
+            else if (propertyName != null)
+            {
+                return $@"{writerVar}.WritePropertyName(NameHelpers.GetPropertyName(""{propertyName}"", options));
             GeneratedJsonSerializer.WriteWithConverter({writerVar}, {valueExpr}, typeof({Metadata.FullyQualifiedName}), options);";
             }
             else

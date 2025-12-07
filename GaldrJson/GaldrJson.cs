@@ -14,12 +14,15 @@ namespace GaldrJson
         /// <param name="value">The value to serialize.</param>
         /// <returns>A JSON string representation of the value.</returns>
         /// <exception cref="NotSupportedException">Thrown when the type is not registered for serialization.</exception>
-        public static string Serialize<T>(T value)
+        public static string Serialize<T>(T value, GaldrJsonOptions options = null)
         {
+            if (options == null)
+                options = GaldrJsonOptions.Default;
+
             if (GaldrJsonSerializerRegistry.Serializer != null &&
                 GaldrJsonSerializerRegistry.Serializer.CanSerialize(typeof(T)))
             {
-                return GaldrJsonSerializerRegistry.Serializer.Serialize(value, typeof(T));
+                return GaldrJsonSerializerRegistry.Serializer.Serialize(value, typeof(T), options);
             }
 
             throw new NotSupportedException($"Type {typeof(T).FullName} is not registered for serialization. Add [GaldrJsonSerializable] attribute to the type.");
@@ -32,12 +35,15 @@ namespace GaldrJson
         /// <param name="type">The type to use for serialization.</param>
         /// <returns>A JSON string representation of the value.</returns>
         /// <exception cref="NotSupportedException">Thrown when the type is not registered for serialization.</exception>
-        public static string Serialize(object value, Type type)
+        public static string Serialize(object value, Type type, GaldrJsonOptions options = null)
         {
+            if (options == null)
+                options = GaldrJsonOptions.Default;
+
             if (GaldrJsonSerializerRegistry.Serializer != null &&
                 GaldrJsonSerializerRegistry.Serializer.CanSerialize(type))
             {
-                return GaldrJsonSerializerRegistry.Serializer.Serialize(value, type);
+                return GaldrJsonSerializerRegistry.Serializer.Serialize(value, type, options);
             }
 
             throw new NotSupportedException($"Type {type.FullName} is not registered for serialization. Add [GaldrJsonSerializable] attribute to the type.");
@@ -50,12 +56,15 @@ namespace GaldrJson
         /// <param name="json">The JSON string to deserialize.</param>
         /// <returns>The deserialized value.</returns>
         /// <exception cref="NotSupportedException">Thrown when the type is not registered for deserialization.</exception>
-        public static T Deserialize<T>(string json)
+        public static T Deserialize<T>(string json, GaldrJsonOptions options = null)
         {
+            if (options == null)
+                options = GaldrJsonOptions.Default;
+
             if (GaldrJsonSerializerRegistry.Serializer != null &&
                 GaldrJsonSerializerRegistry.Serializer.CanSerialize(typeof(T)))
             {
-                return (T)GaldrJsonSerializerRegistry.Serializer.Deserialize(json, typeof(T));
+                return (T)GaldrJsonSerializerRegistry.Serializer.Deserialize(json, typeof(T), options);
             }
 
             throw new NotSupportedException($"Type {typeof(T).FullName} is not registered for deserialization. Add [GaldrJsonSerializable] attribute to the type.");
@@ -68,12 +77,15 @@ namespace GaldrJson
         /// <param name="type">The type to deserialize to.</param>
         /// <returns>The deserialized value.</returns>
         /// <exception cref="NotSupportedException">Thrown when the type is not registered for deserialization.</exception>
-        public static object Deserialize(string json, Type type)
+        public static object Deserialize(string json, Type type, GaldrJsonOptions options = null)
         {
+            if (options == null)
+                options = GaldrJsonOptions.Default;
+
             if (GaldrJsonSerializerRegistry.Serializer != null &&
                 GaldrJsonSerializerRegistry.Serializer.CanSerialize(type))
             {
-                return GaldrJsonSerializerRegistry.Serializer.Deserialize(json, type);
+                return GaldrJsonSerializerRegistry.Serializer.Deserialize(json, type, options);
             }
 
             throw new NotSupportedException($"Type {type.FullName} is not registered for deserialization. Add [GaldrJsonSerializable] attribute to the type.");

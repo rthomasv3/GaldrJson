@@ -26,18 +26,25 @@ namespace GaldrJson.SourceGeneration
             }
         }
 
-        public override string EmitWrite(string writerVar, string valueExpr, string propertyName = null)
+        public override string EmitWrite(string writerVar, string valueExpr, string propertyName = null, string nameOverride = null)
         {
             // Need to convert List<byte> to byte[] for ToBase64String
             bool isArray = Metadata.Symbol.TypeKind == Microsoft.CodeAnalysis.TypeKind.Array;
             string base64Expr = isArray ? valueExpr : $"{valueExpr}.ToArray()";
 
-            if (propertyName != null)
+            if (nameOverride != null)
             {
                 return $@"if ({valueExpr} != null)
-                {writerVar}.WriteString(""{propertyName}"", System.Convert.ToBase64String({base64Expr}));
+                {writerVar}.WriteString(""{nameOverride}"", System.Convert.ToBase64String({base64Expr}));
             else
-                {writerVar}.WriteNull(""{propertyName}"");";
+                {writerVar}.WriteNull(""{nameOverride}"");";
+            }
+            else if (propertyName != null)
+            {
+                return $@"if ({valueExpr} != null)
+                {writerVar}.WriteString(NameHelpers.GetPropertyName(""{propertyName}"", options), System.Convert.ToBase64String({base64Expr}));
+            else
+                {writerVar}.WriteNull(NameHelpers.GetPropertyName(""{propertyName}"", options));";
             }
             else
             {

@@ -28,8 +28,9 @@ namespace GaldrJson.SourceGeneration
         /// <param name="writerVar">The name of the writer variable.</param>
         /// <param name="valueExpr">Expression representing the value to write.</param>
         /// <param name="propertyName">Optional property name for writing object properties.</param>
+        /// <param name="nameOverride">Optional property override name.</param>
         /// <returns>C# statement(s) that write the value.</returns>
-        public abstract string EmitWrite(string writerVar, string valueExpr, string propertyName = null);
+        public abstract string EmitWrite(string writerVar, string valueExpr, string propertyName = null, string nameOverride = null);
 
         /// <summary>
         /// Factory method to create the appropriate CodeEmitter for the given type metadata.

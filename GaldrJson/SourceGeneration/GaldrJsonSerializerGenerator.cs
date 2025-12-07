@@ -117,7 +117,8 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
         }
 
         // Default to camelCase
-        return ToCamelCase(property.Name);
+        //return ToCamelCase(property.Name);
+        return null;
     }
 
     private static bool ShouldIgnoreProperty(IPropertySymbol property)
@@ -376,6 +377,8 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
 
         using (builder.Block("namespace GaldrJson.Generated"))
         {
+            GenerateNameHelpers(builder);
+
             // Generate collection helper methods for all element types used in collections
             GenerateCollectionHelpers(builder, allTypes, metadataCache);
 
@@ -396,6 +399,67 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
         }
 
         context.AddSource("GaldrJsonSerializers.g.cs", SourceText.From(builder.ToString(), Encoding.UTF8));
+    }
+
+    private static void GenerateNameHelpers(IndentedStringBuilder builder)
+    {
+        using (builder.Block("internal static class NameHelpers"))
+        {
+            using (builder.Block("public static bool MatchesPropertyName(string jsonName, string expectedName, JsonSerializerOptions options)"))
+            {
+                using (builder.Block("if (options.PropertyNameCaseInsensitive)"))
+                {
+                    builder.AppendLine("return string.Equals(jsonName, expectedName, StringComparison.OrdinalIgnoreCase);");
+                }
+                builder.AppendLine("return jsonName == expectedName;");
+            }
+
+            builder.AppendLine();
+
+            using (builder.Block("public static string GetPropertyName(string baseName, JsonSerializerOptions options)"))
+            {
+                builder.AppendLine("return options.PropertyNamingPolicy?.ConvertName(baseName) ?? baseName;");
+            }
+
+            builder.AppendLine();
+
+            using (builder.Block("private static string ToCamelCase(string name)"))
+            {
+                builder.AppendLine("return char.ToLowerInvariant(name[0]) + name.Substring(1);");
+            }
+
+            builder.AppendLine();
+
+            using (builder.Block("private static string ToSnakeCaseLower(string name)"))
+            {
+                builder.AppendLine("var sb = new System.Text.StringBuilder();");
+                using (builder.Block("for (int i = 0; i < name.Length; ++i)"))
+                {
+                    builder.AppendLine("if (i > 0 && char.IsUpper(name[i]))");
+                    using (builder.Indent())
+                        builder.AppendLine("sb.Append('_');");
+                    builder.AppendLine("sb.Append(char.ToLowerInvariant(name[i]));");
+                }
+                builder.AppendLine("return sb.ToString().ToLower();");
+            }
+
+            builder.AppendLine();
+
+            using (builder.Block("private static string ToKebabCaseLower(string name)"))
+            {
+                builder.AppendLine("var sb = new System.Text.StringBuilder();");
+                using (builder.Block("for (int i = 0; i < name.Length; ++i)"))
+                {
+                    builder.AppendLine("if (i > 0 && char.IsUpper(name[i]))");
+                    using (builder.Indent())
+                        builder.AppendLine("sb.Append('-');");
+                    builder.AppendLine("sb.Append(char.ToLowerInvariant(name[i]));");
+                }
+                builder.AppendLine("return sb.ToString().ToLower();");
+            }
+        }
+
+        builder.AppendLine();
     }
 
     private static void GenerateCollectionHelpers(IndentedStringBuilder builder, List<TypeInfo> allTypes, TypeMetadataCache metadataCache)
@@ -722,25 +786,38 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
                     builder.AppendLine("reader.Read();");
                     builder.AppendLine();
 
-                    using (builder.Block("switch (propertyName)"))
+                    List<PropertyInfo> properties = typeInfo.Properties.Where(p => p.CanWrite).ToList();
+
+                    if (properties.Count > 0)
                     {
-                        // Generate case for each property - assign to temp variable
-                        foreach (PropertyInfo prop in typeInfo.Properties.Where(p => p.CanWrite))
+                        for (int i = 0; i < properties.Count; ++i)
                         {
-                            builder.AppendLine($"case \"{prop.JsonName}\":");
-                            using (builder.Indent())
+                            var prop = properties[i];
+
+                            if (i == 0)
                             {
-                                GeneratePropertyReadToTempVar(builder, prop, metadataCache);
-                                builder.AppendLine("break;");
+                                using (builder.Block($"if (NameHelpers.MatchesPropertyName(propertyName, \"{prop.Name}\", options))"))
+                                {
+                                    GeneratePropertyReadToTempVar(builder, prop, metadataCache);
+                                }
+                            }
+                            else
+                            {
+                                using (builder.Block($"else if (NameHelpers.MatchesPropertyName(propertyName, \"{prop.Name}\", options))"))
+                                {
+                                    GeneratePropertyReadToTempVar(builder, prop, metadataCache);
+                                }
                             }
                         }
 
-                        builder.AppendLine("default:");
-                        using (builder.Indent())
+                        using (builder.Block("else"))
                         {
                             builder.AppendLine("reader.Skip();");
-                            builder.AppendLine("break;");
                         }
+                    }
+                    else
+                    {
+                        builder.AppendLine("reader.Skip();");
                     }
                 }
 
@@ -800,20 +877,11 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
         builder.AppendLine($"{GetTempVarName(property.Name)} = {readCode};");
     }
 
-    private static void GeneratePropertyRead(IndentedStringBuilder builder, PropertyInfo property, string targetVariable, TypeMetadataCache metadataCache)
-    {
-        var propertyMetadata = metadataCache.GetOrCreate(property.TypeSymbol);
-        var emitter = CodeEmitter.Create(propertyMetadata);
-        var readCode = emitter.EmitRead("reader");
-
-        builder.AppendLine($"{targetVariable}.{property.Name} = {readCode};");
-    }
-
     private static void GeneratePropertyWrite(IndentedStringBuilder builder, PropertyInfo property, TypeMetadataCache metadataCache)
     {
         var propertyMetadata = metadataCache.GetOrCreate(property.TypeSymbol);
         var emitter = CodeEmitter.Create(propertyMetadata);
-        var writeCode = emitter.EmitWrite("writer", $"value.{property.Name}", property.JsonName);
+        var writeCode = emitter.EmitWrite("writer", $"value.{property.Name}", property.Name, property.JsonName);
 
         builder.AppendLine(writeCode);
     }
@@ -892,10 +960,31 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
             builder.AppendLine();
 
             // Serialize method
-            using (builder.Block("public string Serialize(object value, Type type)"))
+            using (builder.Block("public string Serialize(object value, Type type, GaldrJsonOptions options)"))
             {
+                builder.AppendLine("JsonNamingPolicy? namingPolicy = null;");
+                using (builder.Block("if (options.PropertyNamingPolicy == PropertyNamingPolicy.CamelCase)"))
+                {
+                    builder.AppendLine("namingPolicy = JsonNamingPolicy.CamelCase;");
+                }
+                using (builder.Block("else if (options.PropertyNamingPolicy == PropertyNamingPolicy.SnakeCase)"))
+                {
+                    builder.AppendLine("namingPolicy = JsonNamingPolicy.SnakeCaseLower;");
+                }
+                using (builder.Block("else if (options.PropertyNamingPolicy == PropertyNamingPolicy.KebabCase)"))
+                {
+                    builder.AppendLine("namingPolicy = JsonNamingPolicy.KebabCaseLower;");
+                }
+
+                using (builder.Block("JsonSerializerOptions serializerOptions = new JsonSerializerOptions()", endWithSemiColon: true))
+                {
+                    builder.AppendLine("PropertyNameCaseInsensitive = options.PropertyNameCaseInsensitive,");
+                    builder.AppendLine("PropertyNamingPolicy = namingPolicy");
+                }
+                builder.AppendLine();
+
                 builder.AppendLine("using var stream = new System.IO.MemoryStream();");
-                builder.AppendLine("using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true });");
+                builder.AppendLine("using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = options.WriteIndented });");
                 builder.AppendLine();
 
                 using (builder.Block("switch (type)"))
@@ -905,7 +994,7 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
                         builder.AppendLine($"case Type t when t == typeof({type.FullName}):");
                         using (builder.Indent())
                         {
-                            builder.AppendLine($"{type.FieldName}.Write(writer, ({type.FullName})value, JsonSerializerOptions.Default);");
+                            builder.AppendLine($"{type.FieldName}.Write(writer, ({type.FullName})value, serializerOptions);");
                             builder.AppendLine("break;");
                         }
                     }
@@ -931,8 +1020,29 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
             builder.AppendLine();
 
             // Deserialize method
-            using (builder.Block("public object Deserialize(string json, Type type)"))
+            using (builder.Block("public object Deserialize(string json, Type type, GaldrJsonOptions options)"))
             {
+                builder.AppendLine("JsonNamingPolicy? namingPolicy = null;");
+                using (builder.Block("if (options.PropertyNamingPolicy == PropertyNamingPolicy.CamelCase)"))
+                {
+                    builder.AppendLine("namingPolicy = JsonNamingPolicy.CamelCase;");
+                }
+                using (builder.Block("else if (options.PropertyNamingPolicy == PropertyNamingPolicy.SnakeCase)"))
+                {
+                    builder.AppendLine("namingPolicy = JsonNamingPolicy.SnakeCaseLower;");
+                }
+                using (builder.Block("else if (options.PropertyNamingPolicy == PropertyNamingPolicy.KebabCase)"))
+                {
+                    builder.AppendLine("namingPolicy = JsonNamingPolicy.KebabCaseLower;");
+                }
+
+                using (builder.Block("JsonSerializerOptions serializerOptions = new JsonSerializerOptions()", endWithSemiColon: true))
+                {
+                    builder.AppendLine("PropertyNameCaseInsensitive = options.PropertyNameCaseInsensitive,");
+                    builder.AppendLine("PropertyNamingPolicy = namingPolicy");
+                }
+                builder.AppendLine();
+
                 builder.AppendLine("var bytes = System.Text.Encoding.UTF8.GetBytes(json);");
                 builder.AppendLine("var reader = new Utf8JsonReader(bytes);");
                 builder.AppendLine("reader.Read(); // Move to first token");
@@ -944,7 +1054,7 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
                     {
                         builder.AppendLine($"case Type t when t == typeof({type.FullName}):");
                         using (builder.Indent())
-                            builder.AppendLine($"return {type.FieldName}.Read(ref reader, typeof({type.FullName}), JsonSerializerOptions.Default);");
+                            builder.AppendLine($"return {type.FieldName}.Read(ref reader, typeof({type.FullName}), serializerOptions);");
                     }
 
                     builder.AppendLine("default:");

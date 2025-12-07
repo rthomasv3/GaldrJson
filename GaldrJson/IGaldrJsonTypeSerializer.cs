@@ -11,12 +11,12 @@ namespace GaldrJson
         /// <summary>
         /// Serializes an object of the given type.
         /// </summary>
-        string Serialize(object value, Type type);
+        string Serialize(object value, Type type, GaldrJsonOptions options);
 
         /// <summary>
         /// Deserializes an object of the given type.
         /// </summary>
-        object Deserialize(string json, Type type);
+        object Deserialize(string json, Type type, GaldrJsonOptions options);
 
         /// <summary>
         /// Returns true if the type can be serialized.

@@ -53,14 +53,21 @@ namespace GaldrJson.SourceGeneration
             }
         }
 
-        public override string EmitWrite(string writerVar, string valueExpr, string propertyName = null)
+        public override string EmitWrite(string writerVar, string valueExpr, string propertyName = null, string nameOverride = null)
         {
             var specialType = Metadata.Symbol.SpecialType;
 
             // Handle string separately for null checking
             if (specialType == SpecialType.System_String)
             {
-                if (propertyName != null)
+                if (nameOverride != null)
+                {
+                    return $@"if ({valueExpr} != null)
+                {writerVar}.{WriterMethods.WriteString}(""{nameOverride}"", {valueExpr});
+            else
+                {writerVar}.{WriterMethods.WriteNull}(NameHelpers.GetPropertyName(""{propertyName}"", options));";
+                }
+                else if (propertyName != null)
                 {
                     return $@"if ({valueExpr} != null)
                 {writerVar}.{WriterMethods.WriteString}(""{propertyName}"", {valueExpr});
@@ -79,8 +86,10 @@ namespace GaldrJson.SourceGeneration
             // Handle char specially (needs ToString())
             if (specialType == SpecialType.System_Char)
             {
-                if (propertyName != null)
-                    return $"{writerVar}.{WriterMethods.WriteString}(\"{propertyName}\", {valueExpr}.ToString());";
+                if (nameOverride != null)
+                    return $"{writerVar}.{WriterMethods.WriteString}(\"{nameOverride}\", {valueExpr}.ToString());";
+                else if (propertyName != null)
+                    return $"{writerVar}.{WriterMethods.WriteString}(NameHelpers.GetPropertyName(\"{propertyName}\", options), {valueExpr}.ToString());";
                 else
                     return $"{writerVar}.{WriterMethods.WriteStringValue}({valueExpr}.ToString());";
             }
@@ -88,8 +97,10 @@ namespace GaldrJson.SourceGeneration
             // Numeric types
             if (IsNumericType(specialType))
             {
-                if (propertyName != null)
-                    return $"{writerVar}.{WriterMethods.WriteNumber}(\"{propertyName}\", {valueExpr});";
+                if (nameOverride != null)
+                    return $"{writerVar}.{WriterMethods.WriteNumber}(\"{nameOverride}\", {valueExpr});";
+                else if (propertyName != null)
+                    return $"{writerVar}.{WriterMethods.WriteNumber}(NameHelpers.GetPropertyName(\"{propertyName}\", options), {valueExpr});";
                 else
                     return $"{writerVar}.{WriterMethods.WriteNumberValue}({valueExpr});";
             }
@@ -97,8 +108,10 @@ namespace GaldrJson.SourceGeneration
             // Boolean
             if (specialType == SpecialType.System_Boolean)
             {
-                if (propertyName != null)
-                    return $"{writerVar}.{WriterMethods.WriteBoolean}(\"{propertyName}\", {valueExpr});";
+                if (nameOverride != null)
+                    return $"{writerVar}.{WriterMethods.WriteBoolean}(\"{nameOverride}\", {valueExpr});";
+                else if (propertyName != null)
+                    return $"{writerVar}.{WriterMethods.WriteBoolean}(NameHelpers.GetPropertyName(\"{propertyName}\", options), {valueExpr});";
                 else
                     return $"{writerVar}.{WriterMethods.WriteBooleanValue}({valueExpr});";
             }
@@ -106,8 +119,10 @@ namespace GaldrJson.SourceGeneration
             // DateTime
             if (specialType == SpecialType.System_DateTime)
             {
-                if (propertyName != null)
-                    return $"{writerVar}.{WriterMethods.WriteString}(\"{propertyName}\", {valueExpr});";
+                if (nameOverride != null)
+                    return $"{writerVar}.{WriterMethods.WriteString}(\"{nameOverride}\", {valueExpr});";
+                else if (propertyName != null)
+                    return $"{writerVar}.{WriterMethods.WriteString}(NameHelpers.GetPropertyName(\"{propertyName}\", options), {valueExpr});";
                 else
                     return $"{writerVar}.{WriterMethods.WriteStringValue}({valueExpr});";
             }

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using GaldrJson;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GaldrJson.Tests
 {
@@ -688,8 +690,8 @@ namespace GaldrJson.Tests
             var deserialized = GaldrJson.Deserialize<DataModel>(json);
 
             // Verify it's Base64 encoded in JSON
-            Assert.Contains("byteArray\": \"SGVsbG8gV29ybGQ=", json);
-            Assert.Contains("byteList\": \"SGVsbG8gV29ybGQ=", json);
+            Assert.Contains("ByteArray\": \"SGVsbG8gV29ybGQ=", json);
+            Assert.Contains("ByteList\": \"SGVsbG8gV29ybGQ=", json);
 
             // Verify round-trip works correctly
             CollectionAssert.AreEqual(original.ByteArray, deserialized.ByteArray);
@@ -721,7 +723,11 @@ namespace GaldrJson.Tests
                 ByteList = [],
             };
 
-            string json = GaldrJson.Serialize(original);
+            string json = GaldrJson.Serialize(original, new GaldrJsonOptions()
+            {
+                PropertyNamingPolicy = PropertyNamingPolicy.CamelCase,
+                WriteIndented = false
+            });
             var deserialized = GaldrJson.Deserialize<DataModel>(json);
 
             Assert.IsNotNull(deserialized.ByteArray);
@@ -730,8 +736,8 @@ namespace GaldrJson.Tests
             Assert.IsEmpty(deserialized.ByteList);
 
             // Empty byte arrays should serialize as empty Base64 string
-            Assert.Contains("byteArray\": \"\"", json);
-            Assert.Contains("byteList\": \"\"", json);
+            Assert.Contains("byteArray\":\"\"", json);
+            Assert.Contains("byteList\":\"\"", json);
         }
 
         [TestMethod]

@@ -25,12 +25,17 @@ namespace GaldrJson.SourceGeneration
             return $"({Metadata.FullyQualifiedName})CollectionHelpers.ReadCollection_{Metadata.ElementType.SafeName}(ref {readerVar}, options, {isArray.ToString().ToLower()})";
         }
 
-        public override string EmitWrite(string writerVar, string valueExpr, string propertyName = null)
+        public override string EmitWrite(string writerVar, string valueExpr, string propertyName = null, string nameOverride = null)
         {
             // If we have a property name, write the property name first
-            if (propertyName != null)
+            if (nameOverride != null)
             {
-                return $@"{writerVar}.{WriterMethods.WritePropertyName}(""{propertyName}"");
+                return $@"{writerVar}.{WriterMethods.WritePropertyName}(""{nameOverride}"");
+            CollectionHelpers.WriteCollection_{Metadata.ElementType.SafeName}({writerVar}, {valueExpr}, options);";
+            }
+            else if (propertyName != null)
+            {
+                return $@"{writerVar}.{WriterMethods.WritePropertyName}(NameHelpers.GetPropertyName(""{propertyName}"", options));
             CollectionHelpers.WriteCollection_{Metadata.ElementType.SafeName}({writerVar}, {valueExpr}, options);";
             }
             else
