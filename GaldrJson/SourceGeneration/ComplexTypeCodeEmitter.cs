@@ -16,13 +16,7 @@ namespace GaldrJson.SourceGeneration
 
         public override string EmitRead(string readerVar = "reader")
         {
-            // Get the base type name for the converter
-            var baseTypeName = GetBaseTypeName(Metadata.Symbol);
-            var converterName = $"{baseTypeName}JsonConverter";
-
-            // For now, create new instance (Phase 3 will add caching)
-            // Generate: new PersonJsonConverter().Read(ref reader, typeof(Person), options)
-            return $"new {converterName}().Read(ref {readerVar}, typeof({Metadata.FullyQualifiedName}), options)";
+            return $"({Metadata.FullyQualifiedName})GeneratedJsonSerializer.ReadWithConverter(ref {readerVar}, typeof({Metadata.FullyQualifiedName}), options)";
         }
 
         public override string EmitWrite(string writerVar, string valueExpr, string propertyName = null)
@@ -33,12 +27,12 @@ namespace GaldrJson.SourceGeneration
             // If we have a property name, write it first
             if (propertyName != null)
             {
-                return $@"{writerVar}.{WriterMethods.WritePropertyName}(""{propertyName}"");
-            new {converterName}().Write({writerVar}, {valueExpr}, options);";
+                return $@"{writerVar}.WritePropertyName(""{propertyName}"");
+            GeneratedJsonSerializer.WriteWithConverter({writerVar}, {valueExpr}, typeof({Metadata.FullyQualifiedName}), options);";
             }
             else
             {
-                return $"new {converterName}().Write({writerVar}, {valueExpr}, options);";
+                return $"GeneratedJsonSerializer.WriteWithConverter({writerVar}, {valueExpr}, typeof({Metadata.FullyQualifiedName}), options);";
             }
         }
 

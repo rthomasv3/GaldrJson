@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Data.SqlTypes;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using GaldrJson.SourceGeneration;
+using TypeInfo = GaldrJson.SourceGeneration.TypeInfo;
 
 [Generator]
 public class GaldrJsonSerializerGenerator : IIncrementalGenerator
@@ -345,7 +345,21 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
         if (allTypes.Count == 0)
             return;
 
-        //System.Diagnostics.Debugger.Launch();
+        int fieldCounter = 0;
+        foreach (var typeInfo in allTypes)
+        {
+            // Generate unique converter name based on full qualified name
+            typeInfo.ConverterName = typeInfo.FullName
+                .Replace("global::", "")
+                .Replace(".", "_")
+                .Replace("<", "_")
+                .Replace(">", "_")
+                .Replace(",", "_")
+                .Replace(" ", "") + "JsonConverter";
+
+            // Generate unique field name for cached instance
+            typeInfo.FieldName = $"_converter{fieldCounter++}";
+        }
 
         StringBuilder sb = new StringBuilder();
 
@@ -659,10 +673,9 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
 
     private static void GenerateTypeConverter(StringBuilder sb, TypeInfo typeInfo, TypeMetadataCache metadataCache)
     {
-        string converterName = $"{typeInfo.Name}JsonConverter";
         string typeName = typeInfo.FullName;
 
-        sb.AppendLine($"    internal sealed class {converterName} : JsonConverter<{typeName}>");
+        sb.AppendLine($"    internal sealed class {typeInfo.ConverterName} : JsonConverter<{typeName}>");
         sb.AppendLine("    {");
 
         // Generate Read method
@@ -765,6 +778,51 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
     {
         sb.AppendLine("    internal class GeneratedJsonSerializer : IGaldrJsonTypeSerializer");
         sb.AppendLine("    {");
+
+        // Generate cached converter fields
+        foreach (TypeInfo type in types)
+        {
+            sb.AppendLine($"        private static readonly {type.ConverterName} {type.FieldName} = new {type.ConverterName}();");
+        }
+        sb.AppendLine();
+
+        // Add internal helper methods for reading/writing with converters
+        sb.AppendLine("        internal static object ReadWithConverter(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options)");
+        sb.AppendLine("        {");
+        sb.AppendLine("            switch (type)");
+        sb.AppendLine("            {");
+
+        foreach (TypeInfo type in types)
+        {
+            sb.AppendLine($"                case Type t when t == typeof({type.FullName}):");
+            sb.AppendLine($"                    return {type.FieldName}.Read(ref reader, typeof({type.FullName}), options);");
+        }
+
+        sb.AppendLine("                default:");
+        sb.AppendLine("                    throw new NotSupportedException($\"Type {{type.FullName}} is not registered\");");
+        sb.AppendLine("            }");
+        sb.AppendLine("        }");
+        sb.AppendLine();
+
+        sb.AppendLine("        internal static void WriteWithConverter(Utf8JsonWriter writer, object value, Type type, JsonSerializerOptions options)");
+        sb.AppendLine("        {");
+        sb.AppendLine("            switch (type)");
+        sb.AppendLine("            {");
+
+        foreach (TypeInfo type in types)
+        {
+            sb.AppendLine($"                case Type t when t == typeof({type.FullName}):");
+            sb.AppendLine($"                    {type.FieldName}.Write(writer, ({type.FullName})value, options);");
+            sb.AppendLine("                    break;");
+        }
+
+        sb.AppendLine("                default:");
+        sb.AppendLine("                    throw new NotSupportedException($\"Type {{type.FullName}} is not registered\");");
+        sb.AppendLine("            }");
+        sb.AppendLine("        }");
+        sb.AppendLine();
+
+        // CanSerialize method
         sb.AppendLine("        public bool CanSerialize(Type type)");
         sb.AppendLine("        {");
         foreach (TypeInfo type in types)
@@ -775,6 +833,7 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
         sb.AppendLine("        }");
         sb.AppendLine();
 
+        // Serialize method
         sb.AppendLine("        public string Serialize(object value, Type type)");
         sb.AppendLine("        {");
         sb.AppendLine("            using var stream = new System.IO.MemoryStream();");
@@ -786,7 +845,7 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
         foreach (TypeInfo type in types)
         {
             sb.AppendLine($"                case Type t when t == typeof({type.FullName}):");
-            sb.AppendLine($"                    new {type.Name}JsonConverter().Write(writer, ({type.FullName})value, JsonSerializerOptions.Default);");
+            sb.AppendLine($"                    {type.FieldName}.Write(writer, ({type.FullName})value, JsonSerializerOptions.Default);");
             sb.AppendLine("                    break;");
         }
 
@@ -799,6 +858,7 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
         sb.AppendLine("        }");
         sb.AppendLine();
 
+        // Deserialize method
         sb.AppendLine("        public object Deserialize(string json, Type type)");
         sb.AppendLine("        {");
         sb.AppendLine("            var bytes = System.Text.Encoding.UTF8.GetBytes(json);");
@@ -811,7 +871,7 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
         foreach (TypeInfo type in types)
         {
             sb.AppendLine($"                case Type t when t == typeof({type.FullName}):");
-            sb.AppendLine($"                    return new {type.Name}JsonConverter().Read(ref reader, typeof({type.FullName}), JsonSerializerOptions.Default);");
+            sb.AppendLine($"                    return {type.FieldName}.Read(ref reader, typeof({type.FullName}), JsonSerializerOptions.Default);");
         }
 
         sb.AppendLine("                default:");
@@ -831,23 +891,5 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
         sb.AppendLine("            GaldrJsonSerializerRegistry.Register(new GeneratedJsonSerializer());");
         sb.AppendLine("        }");
         sb.AppendLine("    }");
-    }
-
-    // Helper classes
-    private class TypeInfo
-    {
-        public string FullName { get; set; } = "";
-        public string Name { get; set; } = "";
-        public string Namespace { get; set; } = "";
-        public List<PropertyInfo> Properties { get; set; } = new List<PropertyInfo>();
-    }
-
-    private class PropertyInfo
-    {
-        public string Name { get; set; } = "";
-        public string Type { get; set; } = "";
-        public ITypeSymbol TypeSymbol { get; set; } = null;
-        public string JsonName { get; set; } = "";
-        public bool CanWrite { get; set; }
     }
 }
