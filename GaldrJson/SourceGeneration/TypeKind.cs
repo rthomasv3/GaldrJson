@@ -26,18 +26,23 @@
         Nullable,
 
         /// <summary>
-        /// Collection types (List&lt;T&gt;, T[], IEnumerable&lt;T&gt;).
+        /// Collection types (List, T[], IEnumerable).
         /// </summary>
         Collection,
 
         /// <summary>
-        /// Dictionary types (Dictionary&lt;K,V&gt;, IDictionary&lt;K,V&gt;).
+        /// Dictionary types (Dictionary, IDictionary).
         /// </summary>
         Dictionary,
 
         /// <summary>
+        /// An array of bytes (byte[])
+        /// </summary>
+        ByteArray,
+
+        /// <summary>
         /// Complex user-defined types requiring generated converters.
         /// </summary>
-        Complex
+        Complex,
     }
 }

@@ -65,12 +65,12 @@ namespace GaldrJson.SourceGeneration
         /// }
         /// // Automatically generates closing brace and decreases indentation
         /// </example>
-        public BlockIndenter Block(string header)
+        public BlockIndenter Block(string header, bool endWithSemiColon = false)
         {
             AppendLine(header);
             AppendLine("{");
             _indentLevel++;
-            return new BlockIndenter(this);
+            return new BlockIndenter(this, endWithSemiColon);
         }
 
         /// <summary>
@@ -133,16 +133,18 @@ namespace GaldrJson.SourceGeneration
         public readonly struct BlockIndenter : IDisposable
         {
             private readonly IndentedStringBuilder _builder;
+            private readonly bool _endWithSemiColon;
 
-            internal BlockIndenter(IndentedStringBuilder builder)
+            internal BlockIndenter(IndentedStringBuilder builder, bool endWithSemiColon = false)
             {
                 _builder = builder;
+                _endWithSemiColon = endWithSemiColon;
             }
 
             public void Dispose()
             {
                 _builder._indentLevel--;
-                _builder.AppendLine("}");
+                _builder.AppendLine(_endWithSemiColon ? "};" : "}");
             }
         }
 

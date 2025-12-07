@@ -53,6 +53,8 @@ namespace GaldrJson.SourceGeneration
                     return new CollectionCodeEmitter(metadata);
                 case TypeKind.Dictionary:
                     return new DictionaryCodeEmitter(metadata);
+                case TypeKind.ByteArray:
+                    return new ByteArrayCodeEmitter(metadata);
                 case TypeKind.Complex:
                     return new ComplexTypeCodeEmitter(metadata);
                 default:

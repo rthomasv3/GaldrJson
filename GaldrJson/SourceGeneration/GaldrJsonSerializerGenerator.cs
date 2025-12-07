@@ -699,14 +699,20 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
                 using (builder.Indent())
                     builder.AppendLine("throw new JsonException(\"Expected StartObject token\");");
                 builder.AppendLine();
-                builder.AppendLine($"var result = new {typeName}();");
+
+                // Declare temp variables for all writable properties
+                foreach (PropertyInfo prop in typeInfo.Properties.Where(p => p.CanWrite))
+                {
+                    var propertyMetadata = metadataCache.GetOrCreate(prop.TypeSymbol);
+                    builder.AppendLine($"{propertyMetadata.FullyQualifiedName} {GetTempVarName(prop.Name)} = default;");
+                }
                 builder.AppendLine();
 
                 using (builder.Block("while (reader.Read())"))
                 {
                     builder.AppendLine("if (reader.TokenType == JsonTokenType.EndObject)");
                     using (builder.Indent())
-                        builder.AppendLine("return result;");
+                        builder.AppendLine("break;");
                     builder.AppendLine();
                     builder.AppendLine("if (reader.TokenType != JsonTokenType.PropertyName)");
                     using (builder.Indent())
@@ -718,13 +724,13 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
 
                     using (builder.Block("switch (propertyName)"))
                     {
-                        // Generate case for each property
+                        // Generate case for each property - assign to temp variable
                         foreach (PropertyInfo prop in typeInfo.Properties.Where(p => p.CanWrite))
                         {
                             builder.AppendLine($"case \"{prop.JsonName}\":");
                             using (builder.Indent())
                             {
-                                GeneratePropertyRead(builder, prop, "result", metadataCache);
+                                GeneratePropertyReadToTempVar(builder, prop, metadataCache);
                                 builder.AppendLine("break;");
                             }
                         }
@@ -739,7 +745,18 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
                 }
 
                 builder.AppendLine();
-                builder.AppendLine("throw new JsonException(\"Expected EndObject token\");");
+
+                // Create object with object initializer
+                using (builder.Block($"return new {typeName}", endWithSemiColon: true))
+                {
+                    var writableProps = typeInfo.Properties.Where(p => p.CanWrite).ToList();
+                    for (int i = 0; i < writableProps.Count; i++)
+                    {
+                        var prop = writableProps[i];
+                        string comma = i < writableProps.Count - 1 ? "," : "";
+                        builder.AppendLine($"{prop.Name} = {GetTempVarName(prop.Name)}{comma}");
+                    }
+                }
             }
 
             builder.AppendLine();
@@ -766,6 +783,21 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
         }
 
         builder.AppendLine();
+    }
+
+    private static string GetTempVarName(string propertyName)
+    {
+        // Convert PropertyName to propertyName (camelCase) for temp variable
+        return char.ToLowerInvariant(propertyName[0]) + propertyName.Substring(1);
+    }
+
+    private static void GeneratePropertyReadToTempVar(IndentedStringBuilder builder, PropertyInfo property, TypeMetadataCache metadataCache)
+    {
+        var propertyMetadata = metadataCache.GetOrCreate(property.TypeSymbol);
+        var emitter = CodeEmitter.Create(propertyMetadata);
+        var readCode = emitter.EmitRead("reader");
+
+        builder.AppendLine($"{GetTempVarName(property.Name)} = {readCode};");
     }
 
     private static void GeneratePropertyRead(IndentedStringBuilder builder, PropertyInfo property, string targetVariable, TypeMetadataCache metadataCache)

@@ -124,6 +124,13 @@ namespace GaldrJson.Tests
         public List<DateTime?> NullableDateTimeList { get; set; }
     }
 
+    [GaldrJsonSerializable]
+    public class DataModel
+    {
+        public byte[] ByteArray { get; set; }
+        public List<byte> ByteList { get; set; }
+    }
+
     #endregion
 
     #region Dictionary Test Models
@@ -247,6 +254,44 @@ namespace GaldrJson.Tests
     {
         public string Data3 { get; set; }
         public int FinalValue { get; set; }
+    }
+
+    #endregion
+
+    #region Init Test Models
+
+    [GaldrJsonSerializable]
+    internal class InitPropertyTestModel
+    {
+        public int Id { get; init; }
+        public string Name { get; init; }
+        public double Price { get; init; }
+    }
+
+    [GaldrJsonSerializable]
+    internal class MixedPropertyTestModel
+    {
+        public int Id { get; init; }       // init
+        public string Name { get; set; }   // set
+        public double Price { get; init; } // init
+        public bool IsActive { get; set; } // set
+    }
+
+    [GaldrJsonSerializable]
+    internal class ComplexInitPropertyTestModel
+    {
+        public int Id { get; init; }
+        public List<int> Numbers { get; init; }
+        public Dictionary<string, string> Tags { get; init; }
+        public InitPropertyTestModel Nested { get; init; }
+    }
+
+    [GaldrJsonSerializable]
+    internal class NullableInitPropertyTestModel
+    {
+        public int? NullableId { get; init; }
+        public string NullableString { get; init; }
+        public DateTime? NullableDate { get; init; }
     }
 
     #endregion
@@ -628,6 +673,87 @@ namespace GaldrJson.Tests
             CollectionAssert.AreEqual(original.NullableDoubleList, deserialized.NullableDoubleList);
             CollectionAssert.AreEqual(original.NullableDateTimeList, deserialized.NullableDateTimeList);
             CollectionAssert.AreEqual(original.NullableStringList, deserialized.NullableStringList);
+        }
+
+        [TestMethod]
+        public void TestByteCollection()
+        {
+            var original = new DataModel()
+            {
+                ByteArray = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100],
+                ByteList = [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100],
+            };
+
+            string json = GaldrJson.Serialize(original);
+            var deserialized = GaldrJson.Deserialize<DataModel>(json);
+
+            // Verify it's Base64 encoded in JSON
+            Assert.Contains("byteArray\": \"SGVsbG8gV29ybGQ=", json);
+            Assert.Contains("byteList\": \"SGVsbG8gV29ybGQ=", json);
+
+            // Verify round-trip works correctly
+            CollectionAssert.AreEqual(original.ByteArray, deserialized.ByteArray);
+            CollectionAssert.AreEqual(original.ByteList, deserialized.ByteList);
+        }
+
+        [TestMethod]
+        public void TestByteCollection_WithNulls()
+        {
+            var original = new DataModel()
+            {
+                ByteArray = null,
+                ByteList = null,
+            };
+
+            string json = GaldrJson.Serialize(original);
+            var deserialized = GaldrJson.Deserialize<DataModel>(json);
+
+            Assert.IsNull(deserialized.ByteArray);
+            Assert.IsNull(deserialized.ByteList);
+        }
+
+        [TestMethod]
+        public void TestByteCollection_Empty()
+        {
+            var original = new DataModel()
+            {
+                ByteArray = [],
+                ByteList = [],
+            };
+
+            string json = GaldrJson.Serialize(original);
+            var deserialized = GaldrJson.Deserialize<DataModel>(json);
+
+            Assert.IsNotNull(deserialized.ByteArray);
+            Assert.IsNotNull(deserialized.ByteList);
+            Assert.IsEmpty(deserialized.ByteArray);
+            Assert.IsEmpty(deserialized.ByteList);
+
+            // Empty byte arrays should serialize as empty Base64 string
+            Assert.Contains("byteArray\": \"\"", json);
+            Assert.Contains("byteList\": \"\"", json);
+        }
+
+        [TestMethod]
+        public void TestByteCollection_LargeData()
+        {
+            var largeData = new byte[1000];
+            for (int i = 0; i < 1000; i++)
+            {
+                largeData[i] = (byte)(i % 256);
+            }
+
+            var original = new DataModel()
+            {
+                ByteArray = largeData,
+                ByteList = new List<byte>(largeData),
+            };
+
+            string json = GaldrJson.Serialize(original);
+            var deserialized = GaldrJson.Deserialize<DataModel>(json);
+
+            CollectionAssert.AreEqual(original.ByteArray, deserialized.ByteArray);
+            CollectionAssert.AreEqual(original.ByteList, deserialized.ByteList);
         }
     }
 
@@ -1011,6 +1137,232 @@ namespace GaldrJson.Tests
         {
             string json = "{\"name\":\"Test\"}";
             Assert.Throws<NotSupportedException>(() => GaldrJson.Deserialize<object>(json));
+        }
+    }
+
+    [TestClass]
+    public class InitPropertyTests
+    {
+        [TestMethod]
+        public void TestInitProperties_RoundTrip()
+        {
+            var original = new InitPropertyTestModel
+            {
+                Id = 42,
+                Name = "Test Product",
+                Price = 99.99
+            };
+
+            string json = GaldrJson.Serialize(original);
+            var deserialized = GaldrJson.Deserialize<InitPropertyTestModel>(json);
+
+            Assert.AreEqual(original.Id, deserialized.Id);
+            Assert.AreEqual(original.Name, deserialized.Name);
+            Assert.AreEqual(original.Price, deserialized.Price);
+        }
+
+        [TestMethod]
+        public void TestInitProperties_Deserialize()
+        {
+            string json = @"{
+                ""id"": 123,
+                ""name"": ""Widget"",
+                ""price"": 49.95
+            }";
+
+            var result = GaldrJson.Deserialize<InitPropertyTestModel>(json);
+
+            Assert.AreEqual(123, result.Id);
+            Assert.AreEqual("Widget", result.Name);
+            Assert.AreEqual(49.95, result.Price);
+        }
+
+        [TestMethod]
+        public void TestMixedProperties_InitAndSet_RoundTrip()
+        {
+            var original = new MixedPropertyTestModel
+            {
+                Id = 1,
+                Name = "Mixed",
+                Price = 25.50,
+                IsActive = true
+            };
+
+            string json = GaldrJson.Serialize(original);
+            var deserialized = GaldrJson.Deserialize<MixedPropertyTestModel>(json);
+
+            Assert.AreEqual(original.Id, deserialized.Id);
+            Assert.AreEqual(original.Name, deserialized.Name);
+            Assert.AreEqual(original.Price, deserialized.Price);
+            Assert.AreEqual(original.IsActive, deserialized.IsActive);
+        }
+
+        [TestMethod]
+        public void TestComplexInitProperties_RoundTrip()
+        {
+            var original = new ComplexInitPropertyTestModel
+            {
+                Id = 999,
+                Numbers = new List<int> { 1, 2, 3, 4, 5 },
+                Tags = new Dictionary<string, string>
+                {
+                    { "category", "electronics" },
+                    { "brand", "acme" }
+                },
+                Nested = new InitPropertyTestModel
+                {
+                    Id = 111,
+                    Name = "Nested Item",
+                    Price = 12.34
+                }
+            };
+
+            string json = GaldrJson.Serialize(original);
+            var deserialized = GaldrJson.Deserialize<ComplexInitPropertyTestModel>(json);
+
+            Assert.AreEqual(original.Id, deserialized.Id);
+            CollectionAssert.AreEqual(original.Numbers, deserialized.Numbers);
+            CollectionAssert.AreEqual(original.Tags, deserialized.Tags);
+            Assert.IsNotNull(deserialized.Nested);
+            Assert.AreEqual(original.Nested.Id, deserialized.Nested.Id);
+            Assert.AreEqual(original.Nested.Name, deserialized.Nested.Name);
+            Assert.AreEqual(original.Nested.Price, deserialized.Nested.Price);
+        }
+
+        [TestMethod]
+        public void TestNullableInitProperties_WithValues_RoundTrip()
+        {
+            var original = new NullableInitPropertyTestModel
+            {
+                NullableId = 42,
+                NullableString = "Hello",
+                NullableDate = new DateTime(2024, 6, 20)
+            };
+
+            string json = GaldrJson.Serialize(original);
+            var deserialized = GaldrJson.Deserialize<NullableInitPropertyTestModel>(json);
+
+            Assert.AreEqual(original.NullableId, deserialized.NullableId);
+            Assert.AreEqual(original.NullableString, deserialized.NullableString);
+            Assert.AreEqual(original.NullableDate, deserialized.NullableDate);
+        }
+
+        [TestMethod]
+        public void TestNullableInitProperties_WithNulls_RoundTrip()
+        {
+            var original = new NullableInitPropertyTestModel
+            {
+                NullableId = null,
+                NullableString = null,
+                NullableDate = null
+            };
+
+            string json = GaldrJson.Serialize(original);
+            var deserialized = GaldrJson.Deserialize<NullableInitPropertyTestModel>(json);
+
+            Assert.IsNull(deserialized.NullableId);
+            Assert.IsNull(deserialized.NullableString);
+            Assert.IsNull(deserialized.NullableDate);
+        }
+
+        [TestMethod]
+        public void TestInitProperties_PartialJson()
+        {
+            // Test that missing properties get default values
+            string json = @"{
+                ""id"": 123
+            }";
+
+            var result = GaldrJson.Deserialize<InitPropertyTestModel>(json);
+
+            Assert.AreEqual(123, result.Id);
+            Assert.IsNull(result.Name);  // String defaults to null
+            Assert.AreEqual(0.0, result.Price);  // Double defaults to 0
+        }
+
+        [TestMethod]
+        public void TestInitProperties_EmptyJson()
+        {
+            string json = "{}";
+
+            var result = GaldrJson.Deserialize<InitPropertyTestModel>(json);
+
+            Assert.AreEqual(0, result.Id);
+            Assert.IsNull(result.Name);
+            Assert.AreEqual(0.0, result.Price);
+        }
+
+        [TestMethod]
+        public void TestInitProperties_NullJson()
+        {
+            string json = "null";
+
+            var result = GaldrJson.Deserialize<InitPropertyTestModel>(json);
+
+            Assert.IsNull(result);
+        }
+
+        [TestMethod]
+        public void TestInitProperties_ExtraPropertiesIgnored()
+        {
+            string json = @"{
+                ""id"": 123,
+                ""name"": ""Test"",
+                ""price"": 99.99,
+                ""unknownProperty"": ""should be ignored"",
+                ""anotherUnknown"": 12345
+            }";
+
+            var result = GaldrJson.Deserialize<InitPropertyTestModel>(json);
+
+            Assert.AreEqual(123, result.Id);
+            Assert.AreEqual("Test", result.Name);
+            Assert.AreEqual(99.99, result.Price);
+        }
+    }
+
+    [TestClass]
+    public class InitPropertyEdgeCaseTests
+    {
+        [TestMethod]
+        public void TestInitProperties_LargeObject()
+        {
+            var original = new ComplexInitPropertyTestModel
+            {
+                Id = int.MaxValue,
+                Numbers = Enumerable.Range(0, 1000).ToList(),
+                Tags = Enumerable.Range(0, 100)
+                    .ToDictionary(i => $"key{i}", i => $"value{i}"),
+                Nested = new InitPropertyTestModel
+                {
+                    Id = int.MinValue,
+                    Name = new string('x', 1000),
+                    Price = double.MaxValue
+                }
+            };
+
+            string json = GaldrJson.Serialize(original);
+            var deserialized = GaldrJson.Deserialize<ComplexInitPropertyTestModel>(json);
+
+            Assert.AreEqual(original.Id, deserialized.Id);
+            Assert.HasCount(1000, deserialized.Numbers);
+            Assert.HasCount(100, deserialized.Tags);
+        }
+
+        [TestMethod]
+        public void TestInitProperties_SpecialCharactersInStrings()
+        {
+            var original = new InitPropertyTestModel
+            {
+                Id = 1,
+                Name = "Test\nWith\tSpecial\"Characters",
+                Price = 1.23
+            };
+
+            string json = GaldrJson.Serialize(original);
+            var deserialized = GaldrJson.Deserialize<InitPropertyTestModel>(json);
+
+            Assert.AreEqual(original.Name, deserialized.Name);
         }
     }
 }

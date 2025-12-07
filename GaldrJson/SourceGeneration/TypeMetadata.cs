@@ -162,6 +162,11 @@ namespace GaldrJson.SourceGeneration
                 return TypeKind.Enum;
             }
 
+            if (IsByteCollection(symbol))
+            {
+                return TypeKind.ByteArray;
+            }
+
             if (IsCollectionType(symbol))
             {
                 return TypeKind.Collection;
@@ -199,6 +204,39 @@ namespace GaldrJson.SourceGeneration
                 // Get the underlying type (T in Nullable<T>)
                 underlyingType = namedType.TypeArguments[0];
                 return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsByteCollection(ITypeSymbol symbol)
+        {
+            // Check for byte[]
+            if (symbol is IArrayTypeSymbol arraySymbol &&
+                arraySymbol.ElementType.SpecialType == SpecialType.System_Byte)
+            {
+                return true;
+            }
+
+            // Check for generic byte collections (List<byte>, IEnumerable<byte>, etc.)
+            if (symbol is INamedTypeSymbol namedTypeSymbol &&
+                namedTypeSymbol.TypeArguments.Length == 1)
+            {
+                var elementType = namedTypeSymbol.TypeArguments[0];
+                if (elementType.SpecialType == SpecialType.System_Byte)
+                {
+                    var fullName = namedTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                    var normalizedName = fullName.StartsWith("global::") ? fullName.Substring(8) : fullName;
+
+                    // Check if it's a collection type
+                    if (normalizedName.StartsWith("System.Collections.Generic.List<") ||
+                        normalizedName.StartsWith("System.Collections.Generic.IList<") ||
+                        normalizedName.StartsWith("System.Collections.Generic.ICollection<") ||
+                        normalizedName.StartsWith("System.Collections.Generic.IEnumerable<"))
+                    {
+                        return true;
+                    }
+                }
             }
 
             return false;
