@@ -17,15 +17,37 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
         //System.Diagnostics.Debugger.Launch();
 
         // Find all types marked with [GaldrJsonSerializable] attribute
-        IncrementalValueProvider<ImmutableArray<TypeInfo>> typesWithAttribute = context.SyntaxProvider
+        IncrementalValuesProvider<TypeInfo> typesWithAttribute = context.SyntaxProvider
             .CreateSyntaxProvider(
                 predicate: (node, _) => IsTypeWithGaldrJsonSerializableAttribute(node),
                 transform: (ctx, _) => GetTypeInfoFromDeclaration(ctx))
-            .Where(typeInfo => typeInfo != null)
-            .Collect();
+            .Where(typeInfo => typeInfo != null);
+
+        // Find all return types from AddFunction and parameter types from AddAction invocations
+        IncrementalValuesProvider<TypeInfo> typesFromCommands = context.SyntaxProvider
+            .CreateSyntaxProvider(
+                predicate: (node, _) => IsAddFunctionOrActionInvocation(node),
+                transform: (ctx, _) => GetAllTypesFromInvocation(ctx))
+            .Where(typeInfos => typeInfos.Length > 0)
+            .SelectMany((typeInfos, _) => typeInfos)
+            .Where(typeInfo => typeInfo != null);
+
+        // Combine and deduplicate
+        IncrementalValueProvider<ImmutableArray<TypeInfo>> allTypes = typesWithAttribute
+            .Collect()
+            .Combine(typesFromCommands.Collect())
+            .Select((pair, _) =>
+            {
+                var (attrTypes, cmdTypes) = pair;
+                return attrTypes
+                    .Concat(cmdTypes)
+                    .GroupBy(t => t.FullName)
+                    .Select(g => g.First())
+                    .ToImmutableArray();
+            });
 
         // Generate serialization code
-        context.RegisterSourceOutput(typesWithAttribute, GenerateSerializers);
+        context.RegisterSourceOutput(allTypes, GenerateSerializers);
     }
 
     private static bool IsTypeWithGaldrJsonSerializableAttribute(SyntaxNode node)
@@ -58,6 +80,120 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
 
         // Extract type info
         return ExtractTypeInfo(typeSymbol);
+    }
+
+    private static bool IsAddFunctionOrActionInvocation(SyntaxNode node)
+    {
+        return node is InvocationExpressionSyntax invocation &&
+               invocation.Expression is MemberAccessExpressionSyntax memberAccess &&
+               (memberAccess.Name.Identifier.Text == "AddFunction" ||
+                memberAccess.Name.Identifier.Text == "AddAction");
+    }
+
+    private static ImmutableArray<TypeInfo> GetAllTypesFromInvocation(GeneratorSyntaxContext context)
+    {
+        InvocationExpressionSyntax invocation = (InvocationExpressionSyntax)context.Node;
+        SemanticModel semanticModel = context.SemanticModel;
+        IMethodSymbol methodSymbol = semanticModel.GetSymbolInfo(invocation).Symbol as IMethodSymbol;
+
+        if (methodSymbol == null ||
+            (methodSymbol.Name != "AddFunction" && methodSymbol.Name != "AddAction") ||
+            methodSymbol.ContainingType.Name != "GaldrBuilder" ||
+            methodSymbol.ContainingNamespace.ToDisplayString() != "Galdr.Native")
+        {
+            return ImmutableArray<TypeInfo>.Empty;
+        }
+
+        List<TypeInfo> discoveredTypes = new List<TypeInfo>();
+
+        // For AddFunction: Func<T1, T2, ..., TResult> - last type arg is return type, rest are parameters
+        // For AddAction: Action<T1, T2, ...> - all type args are parameters
+        if (methodSymbol.TypeArguments.Length > 0)
+        {
+            if (methodSymbol.Name == "AddFunction")
+            {
+                // For AddFunction, the return type is the last type argument
+                if (methodSymbol.TypeArguments.Length > 0)
+                {
+                    ITypeSymbol returnType = methodSymbol.TypeArguments.Last();
+
+                    // Skip void and primitive types for return types
+                    if (returnType.SpecialType == SpecialType.None &&
+                        returnType.TypeKind != Microsoft.CodeAnalysis.TypeKind.Enum &&
+                        returnType.Name != "String")
+                    {
+                        TypeInfo returnTypeInfo = ExtractTypeInfo(returnType);
+                        if (returnTypeInfo != null)
+                        {
+                            discoveredTypes.Add(returnTypeInfo);
+                        }
+                    }
+                }
+
+                // Parameter types are all type arguments except the last one
+                for (int i = 0; i < methodSymbol.TypeArguments.Length - 1; i++)
+                {
+                    ITypeSymbol parameterType = methodSymbol.TypeArguments[i];
+                    if (ShouldGenerateSerializerForParameter(parameterType))
+                    {
+                        TypeInfo parameterTypeInfo = ExtractTypeInfo(parameterType);
+                        if (parameterTypeInfo != null)
+                        {
+                            discoveredTypes.Add(parameterTypeInfo);
+                        }
+                    }
+                }
+            }
+            else if (methodSymbol.Name == "AddAction")
+            {
+                // For AddAction, all type arguments are parameters
+                for (int i = 0; i < methodSymbol.TypeArguments.Length; i++)
+                {
+                    ITypeSymbol parameterType = methodSymbol.TypeArguments[i];
+                    if (ShouldGenerateSerializerForParameter(parameterType))
+                    {
+                        TypeInfo parameterTypeInfo = ExtractTypeInfo(parameterType);
+                        if (parameterTypeInfo != null)
+                        {
+                            discoveredTypes.Add(parameterTypeInfo);
+                        }
+                    }
+                }
+            }
+        }
+
+        return discoveredTypes.ToImmutableArray();
+    }
+
+    private static bool ShouldGenerateSerializerForParameter(ITypeSymbol parameterType)
+    {
+        // Skip interfaces (likely DI services)
+        if (parameterType.TypeKind == Microsoft.CodeAnalysis.TypeKind.Interface)
+            return false;
+
+        // Skip abstract classes (likely DI services)
+        if (parameterType.IsAbstract)
+            return false;
+
+        // Skip obvious framework types
+        string fullName = parameterType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+        // Skip Microsoft and most System types (but allow basic data types to be handled by ShouldSerializeType)
+        if (fullName.StartsWith("Microsoft.") || fullName.StartsWith("global::Microsoft."))
+            return false;
+
+        // Skip System types that are clearly services/framework types
+        if ((fullName.StartsWith("System.") || fullName.StartsWith("global::System.")) &&
+            (fullName.Contains("IServiceProvider") ||
+             fullName.Contains("ILogger") ||
+             fullName.Contains("IConfiguration") ||
+             fullName.Contains("IHosting") ||
+             fullName.Contains("IMemoryCache") ||
+             fullName.Contains("HttpContext")))
+            return false;
+
+        // Use the existing logic for everything else
+        return ShouldSerializeType(parameterType);
     }
 
     private static TypeInfo ExtractTypeInfo(ITypeSymbol typeSymbol)

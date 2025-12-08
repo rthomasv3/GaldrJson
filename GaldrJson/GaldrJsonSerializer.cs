@@ -39,18 +39,7 @@ namespace GaldrJson
         /// <inheritdoc />
         public bool TrySerialize<T>(T value, out string json, GaldrJsonOptions options = null)
         {
-            if (options == null)
-                options = GaldrJsonOptions.Default;
-
-            json = null;
-
-            if (GaldrJsonSerializerRegistry.Serializer != null && 
-                GaldrJsonSerializerRegistry.Serializer.CanSerialize(typeof(T)))
-            {
-                json = GaldrJsonSerializerRegistry.Serializer.Serialize(value, typeof(T), options);
-            }
-
-            return json != null;
+            return TrySerialize(value, typeof(T), out json, options);
         }
 
         /// <inheritdoc />

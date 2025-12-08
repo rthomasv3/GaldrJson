@@ -8,6 +8,9 @@ public static class GaldrJsonServiceCollectionExtensions
 {
     public static IServiceCollection AddGaldrJson(this IServiceCollection services)
     {
+        services.AddSingleton<GaldrJsonSerializer>();
+        services.AddSingleton<IGaldrJsonSerializer, GaldrJsonSerializer>();
+
         services.ConfigureHttpJsonOptions(options =>
         {
             // Add the factory (delegates to your registry)
