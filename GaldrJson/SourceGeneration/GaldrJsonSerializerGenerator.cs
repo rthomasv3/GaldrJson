@@ -175,6 +175,12 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
         if (parameterType.IsAbstract)
             return false;
 
+        // has ignore attribute
+        if (parameterType.GetAttributes().Any(attr =>
+            attr.AttributeClass?.Name == "GaldrJsonIgnore" ||
+            attr.AttributeClass?.Name == "GaldrJsonIgnoreAttribute"))
+            return false;
+
         // Skip obvious framework types
         string fullName = parameterType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
