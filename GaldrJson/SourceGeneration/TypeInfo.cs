@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using System.Reflection;
+using Microsoft.CodeAnalysis;
 
 namespace GaldrJson.SourceGeneration
 {
@@ -11,5 +11,6 @@ namespace GaldrJson.SourceGeneration
         public string ConverterName { get; set; } = "";
         public string FieldName { get; set; } = "";
         public List<PropertyInfo> Properties { get; set; } = new List<PropertyInfo>();
+        public ITypeSymbol TypeSymbol { get; set; }
     }
 }

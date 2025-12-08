@@ -26,7 +26,7 @@ namespace GaldrJson
         /// <summary>
         /// Writes the value using Utf8JsonWriter.
         /// </summary>
-        void Write(Utf8JsonWriter writer, object value, Type type, JsonSerializerOptions options);
+        void Write(Utf8JsonWriter writer, object value, Type type, JsonSerializerOptions options, ReferenceTracker tracker);
 
         /// <summary>
         /// Reads the value using Utf8JsonReader.

@@ -27,16 +27,16 @@ namespace GaldrJson.SourceGeneration
             if (nameOverride != null)
             {
                 return $@"{writerVar}.WritePropertyName(""{nameOverride}"");
-            GeneratedJsonSerializer.WriteWithConverter({writerVar}, {valueExpr}, typeof({Metadata.FullyQualifiedName}), options);";
+            GeneratedJsonSerializer.WriteWithConverter({writerVar}, {valueExpr}, typeof({Metadata.FullyQualifiedName}), options, Tracker);";
             }
             else if (propertyName != null)
             {
                 return $@"{writerVar}.WritePropertyName(NameHelpers.GetPropertyName(""{propertyName}"", options));
-            GeneratedJsonSerializer.WriteWithConverter({writerVar}, {valueExpr}, typeof({Metadata.FullyQualifiedName}), options);";
+            GeneratedJsonSerializer.WriteWithConverter({writerVar}, {valueExpr}, typeof({Metadata.FullyQualifiedName}), options, Tracker);";
             }
             else
             {
-                return $"GeneratedJsonSerializer.WriteWithConverter({writerVar}, {valueExpr}, typeof({Metadata.FullyQualifiedName}), options);";
+                return $"GeneratedJsonSerializer.WriteWithConverter({writerVar}, {valueExpr}, typeof({Metadata.FullyQualifiedName}), options, Tracker);";
             }
         }
 

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using GaldrJson;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using System.Text.Json;
 
 namespace GaldrJson.Tests
 {
@@ -294,6 +289,24 @@ namespace GaldrJson.Tests
         public int? NullableId { get; init; }
         public string NullableString { get; init; }
         public DateTime? NullableDate { get; init; }
+    }
+
+    #endregion
+
+    #region Circular Reference Tests
+
+    [GaldrJsonSerializable]
+    public class CircularPerson
+    {
+        public string Name { get; set; }
+        public CircularAddress Address { get; set; }
+    }
+
+    [GaldrJsonSerializable]
+    public class CircularAddress
+    {
+        public string Street { get; set; }
+        public CircularPerson Person { get; set; }
     }
 
     #endregion
@@ -1369,6 +1382,43 @@ namespace GaldrJson.Tests
             var deserialized = GaldrJson.Deserialize<InitPropertyTestModel>(json);
 
             Assert.AreEqual(original.Name, deserialized.Name);
+        }
+    }
+
+    [TestClass]
+    public class CircularReferenceTests
+    {
+        [TestMethod]
+        public void TestCircularReference_ThrowsJsonException()
+        {
+            var person = new CircularPerson { Name = "John" };
+            var address = new CircularAddress { Street = "123 Main St", Person = person };
+            person.Address = address;  // Creates circular reference
+
+            var exception = Assert.Throws<JsonException>(() =>
+            {
+                string json = GaldrJson.Serialize(person);
+            });
+
+            Assert.Contains("cycle", exception.Message);
+        }
+
+        [TestMethod]
+        public void TestNonCircularReference_Succeeds()
+        {
+            var person = new CircularPerson
+            {
+                Name = "John",
+                Address = new CircularAddress
+                {
+                    Street = "123 Main St",
+                    Person = null  // No circular reference
+                }
+            };
+
+            string json = GaldrJson.Serialize(person);
+            Assert.IsNotNull(json);
+            Assert.Contains("John", json);
         }
     }
 }

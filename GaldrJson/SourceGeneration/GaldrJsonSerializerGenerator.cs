@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
+using GaldrJson.SourceGeneration;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
-using GaldrJson.SourceGeneration;
 using TypeInfo = GaldrJson.SourceGeneration.TypeInfo;
 
 [Generator]
@@ -203,7 +203,8 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
             FullName = typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             Name = typeSymbol.Name,
             Namespace = typeSymbol.ContainingNamespace?.ToDisplayString() ?? "Global",
-            Properties = new List<PropertyInfo>()
+            Properties = new List<PropertyInfo>(),
+            TypeSymbol = typeSymbol,
         };
 
         // Extract all public properties
@@ -252,8 +253,7 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
             return jsonPropertyAttr.ConstructorArguments[0].Value?.ToString() ?? property.Name;
         }
 
-        // Default to camelCase
-        //return ToCamelCase(property.Name);
+        // no override
         return null;
     }
 
@@ -272,14 +272,6 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
             .Any(a => a.AttributeClass?.ToDisplayString() == "System.Text.Json.Serialization.JsonIgnoreAttribute");
 
         return hasJsonIgnore;
-    }
-
-    private static string ToCamelCase(string name)
-    {
-        if (string.IsNullOrEmpty(name) || char.IsLower(name[0]))
-            return name;
-
-        return char.ToLowerInvariant(name[0]) + name.Substring(1);
     }
 
     private static bool ShouldSerializeType(ITypeSymbol typeSymbol)
@@ -528,7 +520,7 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
             }
 
             // Generate the serializer implementation
-            GenerateSerializerImplementation(builder, allTypes);
+            GenerateSerializerImplementation(builder, allTypes, metadataCache);
 
             // Generate the module initializer
             GenerateModuleInitializer(builder);
@@ -688,6 +680,13 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
 
             using (builder.Block($"foreach (var item in (System.Collections.Generic.IEnumerable<{elementTypeDisplayName}>)collection)"))
             {
+                bool needsTracking = elementMetadata.IsComplex;
+
+                if (needsTracking)
+                {
+                    builder.AppendLine("ReferenceTracker Tracker = new ReferenceTracker();");
+                }
+
                 // Generate element writing code using CodeEmitter (for array elements, no property name)
                 string elementWriteCode = elementEmitter.EmitWrite("writer", "item", null);
                 builder.AppendLine(elementWriteCode);
@@ -888,6 +887,9 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
 
         using (builder.Block($"internal sealed class {typeInfo.ConverterName} : JsonConverter<{typeName}>"))
         {
+            builder.AppendLine("internal ReferenceTracker Tracker { get; set; }");
+            builder.AppendLine();
+
             // Generate Read method
             using (builder.Block($"public override {typeName} Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)"))
             {
@@ -984,6 +986,12 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
                 }
 
                 builder.AppendLine();
+                using (builder.Block("if (Tracker != null && !Tracker.Push(value))"))
+                {
+                    builder.AppendLine($"throw new JsonException(\"A possible object cycle was detected for type '{typeInfo.FullName}'.\");");
+                }
+
+                builder.AppendLine();
                 builder.AppendLine("writer.WriteStartObject();");
 
                 foreach (PropertyInfo prop in typeInfo.Properties)
@@ -1022,8 +1030,19 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
         builder.AppendLine(writeCode);
     }
 
-    private static void GenerateSerializerImplementation(IndentedStringBuilder builder, List<TypeInfo> types)
+    private static void GenerateSerializerImplementation(IndentedStringBuilder builder, List<TypeInfo> types, TypeMetadataCache metadataCache)
     {
+        Dictionary<string, TypeMetadata> typeMetadataMap = new Dictionary<string, TypeMetadata>();
+
+        foreach (var typeInfo in types)
+        {
+            if (typeInfo.TypeSymbol != null)
+            {
+                var metadata = metadataCache.GetOrCreate(typeInfo.TypeSymbol);
+                typeMetadataMap[typeInfo.FullName] = metadata;
+            }
+        }
+
         using (builder.Block("internal class GeneratedJsonSerializer : IGaldrJsonTypeSerializer"))
         {
             // Generate cached converter fields
@@ -1053,15 +1072,21 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
 
             builder.AppendLine();
 
-            using (builder.Block("internal static void WriteWithConverter(Utf8JsonWriter writer, object value, Type type, JsonSerializerOptions options)"))
+            using (builder.Block("internal static void WriteWithConverter(Utf8JsonWriter writer, object value, Type type, JsonSerializerOptions options, ReferenceTracker tracker)"))
             {
                 using (builder.Block("switch (type)"))
                 {
                     foreach (TypeInfo type in types)
                     {
+                        bool needsTracking = typeMetadataMap.TryGetValue(type.FullName, out var metadata) && metadata.IsComplex;
+
                         builder.AppendLine($"case Type t when t == typeof({type.FullName}):");
                         using (builder.Indent())
                         {
+                            if (needsTracking)
+                            {
+                                builder.AppendLine($"{type.FieldName}.Tracker = tracker;");
+                            }
                             builder.AppendLine($"{type.FieldName}.Write(writer, ({type.FullName})value, options);");
                             builder.AppendLine("break;");
                         }
@@ -1088,9 +1113,9 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
             builder.AppendLine();
 
             // Write Method
-            using (builder.Block("public void Write(Utf8JsonWriter writer, object value, Type type, JsonSerializerOptions options)"))
+            using (builder.Block("public void Write(Utf8JsonWriter writer, object value, Type type, JsonSerializerOptions options, ReferenceTracker tracker)"))
             {
-                builder.AppendLine("WriteWithConverter(writer, value, type, options);");
+                builder.AppendLine("WriteWithConverter(writer, value, type, options, tracker);");
             }
 
             builder.AppendLine();
@@ -1123,13 +1148,22 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
                 builder.AppendLine("using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = options.WriteIndented });");
                 builder.AppendLine();
 
+                builder.AppendLine("ReferenceTracker tracker = new ReferenceTracker();");
+                builder.AppendLine();
+
                 using (builder.Block("switch (type)"))
                 {
                     foreach (TypeInfo type in types)
                     {
+                        bool needsTracking = typeMetadataMap.TryGetValue(type.FullName, out var metadata) && metadata.IsComplex;
+
                         builder.AppendLine($"case Type t when t == typeof({type.FullName}):");
                         using (builder.Indent())
                         {
+                            if (needsTracking)
+                            {
+                                builder.AppendLine($"{type.FieldName}.Tracker = tracker;");
+                            }
                             builder.AppendLine($"{type.FieldName}.Write(writer, ({type.FullName})value, serializerOptions);");
                             builder.AppendLine("break;");
                         }
