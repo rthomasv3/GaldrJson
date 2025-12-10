@@ -11,6 +11,9 @@ namespace GaldrJson
     {
         private readonly HashSet<object> _references;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReferenceTracker"/> class.
+        /// </summary>
         public ReferenceTracker()
         {
             _references = new HashSet<object>(new ReferenceEqualityComparer());

@@ -2,6 +2,15 @@
 
 namespace GaldrJson
 {
+    /// <summary>
+    /// Provides methods for serializing and deserializing objects to and from JSON using the Galdr serialization
+    /// framework.
+    /// </summary>
+    /// <remarks>
+    /// GaldrJsonSerializer supports serialization and deserialization for types that are registered
+    /// with the Galdr framework, typically by applying the [GaldrJsonSerializable] attribute. Attempting to serialize
+    /// or deserialize unregistered types will result in a NotSupportedException or a failed operation.
+    /// </remarks>
     public class GaldrJsonSerializer : IGaldrJsonSerializer
     {
         /// <inheritdoc />

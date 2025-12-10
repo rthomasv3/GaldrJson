@@ -12,6 +12,7 @@ namespace GaldrJson
         /// </summary>
         /// <typeparam name="T">The type of the value to serialize.</typeparam>
         /// <param name="value">The value to serialize.</param>
+        /// <param name="options">Optional serialization settings.</param>
         /// <returns>A JSON string representation of the value.</returns>
         /// <exception cref="NotSupportedException">Thrown when the type is not registered for serialization.</exception>
         public static string Serialize<T>(T value, GaldrJsonOptions options = null)
@@ -33,6 +34,7 @@ namespace GaldrJson
         /// </summary>
         /// <param name="value">The value to serialize.</param>
         /// <param name="type">The type to use for serialization.</param>
+        /// <param name="options">Optional serialization settings.</param>
         /// <returns>A JSON string representation of the value.</returns>
         /// <exception cref="NotSupportedException">Thrown when the type is not registered for serialization.</exception>
         public static string Serialize(object value, Type type, GaldrJsonOptions options = null)
@@ -54,6 +56,7 @@ namespace GaldrJson
         /// </summary>
         /// <typeparam name="T">The type to deserialize to.</typeparam>
         /// <param name="json">The JSON string to deserialize.</param>
+        /// <param name="options">Optional serialization settings.</param>
         /// <returns>The deserialized value.</returns>
         /// <exception cref="NotSupportedException">Thrown when the type is not registered for deserialization.</exception>
         public static T Deserialize<T>(string json, GaldrJsonOptions options = null)
@@ -75,6 +78,7 @@ namespace GaldrJson
         /// </summary>
         /// <param name="json">The JSON string to deserialize.</param>
         /// <param name="type">The type to deserialize to.</param>
+        /// <param name="options">Optional serialization settings.</param>
         /// <returns>The deserialized value.</returns>
         /// <exception cref="NotSupportedException">Thrown when the type is not registered for deserialization.</exception>
         public static object Deserialize(string json, Type type, GaldrJsonOptions options = null)

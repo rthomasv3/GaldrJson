@@ -17,7 +17,7 @@
         }
 
         /// <summary>
-        /// 
+        /// Gets the generated Galdr Json Type Serializer, if registered.
         /// </summary>
         public static IGaldrJsonTypeSerializer Serializer => _serializer;
     }

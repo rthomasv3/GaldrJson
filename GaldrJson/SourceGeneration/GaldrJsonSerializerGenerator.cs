@@ -9,9 +9,33 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
 using TypeInfo = GaldrJson.SourceGeneration.TypeInfo;
 
+/// <summary>
+/// Generates source code for high-performance JSON serialization and deserialization of types marked with the
+/// GaldrJsonSerializable attribute or used in Galdr command registrations.
+/// </summary>
+/// <remarks>
+/// This incremental source generator scans the user's code for types annotated with
+/// [GaldrJsonSerializable] as well as types referenced in AddFunction and AddAction invocations on GaldrBuilder. For
+/// each discovered type, it generates strongly-typed System.Text.Json converters and registers them with the GaldrJson
+/// serialization infrastructure. The generated serializers support custom property naming policies, collection and
+/// dictionary types, and handle object cycles using a reference tracker. Only types explicitly discovered by the
+/// generator are supported for serialization; attempting to serialize or deserialize unsupported types will result in a
+/// NotSupportedException. This generator is intended for use in projects that integrate with the Galdr framework and
+/// require fast, reflection-free JSON serialization.
+/// </remarks>
 [Generator]
 public class GaldrJsonSerializerGenerator : IIncrementalGenerator
 {
+    /// <summary>
+    /// Initializes the incremental source generator by registering code generation logic for types marked with the
+    /// GaldrJsonSerializable attribute and for types used in AddFunction and AddAction invocations.
+    /// </summary>
+    /// <remarks>
+    /// This method configures the generator to discover relevant types in the user's code and to
+    /// generate serialization code for them. It should be called from the generator's Initialize method.
+    /// </remarks>
+    /// <param name="context">The context for incremental generator initialization, used to register source outputs and access syntax
+    /// information.</param>
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         //System.Diagnostics.Debugger.Launch();
@@ -1122,7 +1146,7 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
             // Serialize method
             using (builder.Block("public string Serialize(object value, Type type, GaldrJsonOptions options)"))
             {
-                builder.AppendLine("JsonNamingPolicy? namingPolicy = null;");
+                builder.AppendLine("JsonNamingPolicy namingPolicy = null;");
                 using (builder.Block("if (options.PropertyNamingPolicy == PropertyNamingPolicy.CamelCase)"))
                 {
                     builder.AppendLine("namingPolicy = JsonNamingPolicy.CamelCase;");
@@ -1191,7 +1215,7 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
             // Deserialize method
             using (builder.Block("public object Deserialize(string json, Type type, GaldrJsonOptions options)"))
             {
-                builder.AppendLine("JsonNamingPolicy? namingPolicy = null;");
+                builder.AppendLine("JsonNamingPolicy namingPolicy = null;");
                 using (builder.Block("if (options.PropertyNamingPolicy == PropertyNamingPolicy.CamelCase)"))
                 {
                     builder.AppendLine("namingPolicy = JsonNamingPolicy.CamelCase;");
