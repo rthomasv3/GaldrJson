@@ -65,14 +65,14 @@ namespace GaldrJson.SourceGeneration
                     return $@"if ({valueExpr} != null)
                 {writerVar}.{WriterMethods.WriteString}(""{nameOverride}"", {valueExpr});
             else
-                {writerVar}.{WriterMethods.WriteNull}(NameHelpers.GetPropertyName(""{propertyName}"", options));";
+                {writerVar}.{WriterMethods.WriteNull}(""{nameOverride}"");";
                 }
                 else if (propertyName != null)
                 {
                     return $@"if ({valueExpr} != null)
-                {writerVar}.{WriterMethods.WriteString}(""{propertyName}"", {valueExpr});
+                {writerVar}.{WriterMethods.WriteString}(NameHelpers.GetPropertyName(""{propertyName}"", options), {valueExpr});
             else
-                {writerVar}.{WriterMethods.WriteNull}(""{propertyName}"");";
+                {writerVar}.{WriterMethods.WriteNull}(NameHelpers.GetPropertyName(""{propertyName}"", options));";
                 }
                 else
                 {

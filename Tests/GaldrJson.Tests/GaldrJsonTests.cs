@@ -902,6 +902,26 @@ namespace GaldrJson.Tests
     public class NestedObjectTests
     {
         [TestMethod]
+        public void TestNaming()
+        {
+            var original = new Address
+            {
+                Street = "123 Main St",
+                City = "Anytown",
+                ZipCode = "12345"
+            };
+
+            string json = GaldrJson.Serialize(original, new GaldrJsonOptions()
+            {
+                PropertyNamingPolicy = PropertyNamingPolicy.CamelCase
+            });
+
+            Assert.Contains("\"street\"", json);
+            Assert.Contains("\"city\"", json);
+            Assert.Contains("\"zipCode\"", json);
+        }
+
+        [TestMethod]
         public void TestSimpleNesting_RoundTrip()
         {
             var original = new Person

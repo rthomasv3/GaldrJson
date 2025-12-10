@@ -11,6 +11,7 @@ namespace GaldrJson
     /// with the Galdr framework, typically by applying the [GaldrJsonSerializable] attribute. Attempting to serialize
     /// or deserialize unregistered types will result in a NotSupportedException or a failed operation.
     /// </remarks>
+    [GaldrJsonIgnore]
     public class GaldrJsonSerializer : IGaldrJsonSerializer
     {
         /// <inheritdoc />

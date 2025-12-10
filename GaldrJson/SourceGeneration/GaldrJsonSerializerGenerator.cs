@@ -199,11 +199,22 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
         if (parameterType.IsAbstract)
             return false;
 
-        // has ignore attribute
+        // Skip if has ignore attribute
         if (parameterType.GetAttributes().Any(attr =>
             attr.AttributeClass?.Name == "GaldrJsonIgnore" ||
             attr.AttributeClass?.Name == "GaldrJsonIgnoreAttribute"))
             return false;
+
+        // Skip if no parameterless constructor available
+        if (parameterType is INamedTypeSymbol namedType)
+        {
+            bool hasParameterlessConstructor = namedType.Constructors.Any(c =>
+                c.Parameters.Length == 0 &&
+                c.DeclaredAccessibility == Accessibility.Public);
+
+            if (!hasParameterlessConstructor)
+                return false;
+        }
 
         // Skip obvious framework types
         string fullName = parameterType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
