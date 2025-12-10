@@ -26,4 +26,8 @@
     <None Include="..\LICENSE.txt" Pack="true" PackagePath="" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="wizard-round-128.png" Pack="true" PackagePath="" />
+  </ItemGroup>
+
 </Project>
