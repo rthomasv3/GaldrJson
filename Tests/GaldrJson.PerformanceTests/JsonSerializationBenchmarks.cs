@@ -32,6 +32,7 @@ public class JsonSerializationBenchmarks
             PropertyNameCaseInsensitive = false,
             PropertyNamingPolicy = PropertyNamingPolicy.Exact,
             WriteIndented = false,
+            DetectCycles = true,
         };
 
         _jsonSerializerOptions = new JsonSerializerOptions()

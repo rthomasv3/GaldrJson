@@ -1186,10 +1186,10 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
                 }
                 builder.AppendLine();
 
-                builder.AppendLine("var bufferWriter = new System.Buffers.ArrayBufferWriter<byte>();");
+                builder.AppendLine("var bufferWriter = new System.Buffers.ArrayBufferWriter<byte>(initialCapacity: 8192);");
                 using (builder.Block("using (var writer = new Utf8JsonWriter(bufferWriter, new JsonWriterOptions { Indented = options.WriteIndented }))"))
                 {
-                    builder.AppendLine("ReferenceTracker tracker = new ReferenceTracker();");
+                    builder.AppendLine("ReferenceTracker tracker = options.DetectCycles ? new ReferenceTracker() : null;");
                     builder.AppendLine();
 
                     using (builder.Block("switch (type)"))
