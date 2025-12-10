@@ -147,6 +147,7 @@ namespace GaldrJson.Tests
         public Dictionary<string, DateTime> DateTimeDict { get; set; }
         public Dictionary<string, List<int>> ListDict { get; set; }
         public Dictionary<int, StatusEnum> EnumDict { get; set; }
+        public Dictionary<string, Address> AddressDict { get; set; }
     }
 
     [GaldrJsonSerializable]
@@ -834,7 +835,11 @@ namespace GaldrJson.Tests
                 {
                     { 1, StatusEnum.Active },
                     { 2, StatusEnum.Pending }
-                }
+                },
+                AddressDict = new Dictionary<string, Address>
+                {
+                    { "home", new Address() { City = "Somewhere" } },
+                },
             };
 
             string json = GaldrJson.Serialize(original);
@@ -844,6 +849,7 @@ namespace GaldrJson.Tests
             Assert.HasCount(original.ListDict.Count, deserialized.ListDict);
             CollectionAssert.AreEqual(original.ListDict["evens"], deserialized.ListDict["evens"]);
             CollectionAssert.AreEqual(original.EnumDict, deserialized.EnumDict);
+            Assert.HasCount(original.AddressDict.Count, deserialized.AddressDict);
         }
 
         [TestMethod]

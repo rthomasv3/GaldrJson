@@ -31,17 +31,17 @@ namespace GaldrJson.SourceGeneration
             if (nameOverride != null)
             {
                 return $@"{writerVar}.{WriterMethods.WritePropertyName}(""{nameOverride}"");
-            CollectionHelpers.WriteCollection_{Metadata.ElementType.SafeName}({writerVar}, {valueExpr}, options);";
+            CollectionHelpers.WriteCollection_{Metadata.ElementType.SafeName}({writerVar}, {valueExpr}, options, Tracker);";
             }
             else if (propertyName != null)
             {
                 return $@"{writerVar}.{WriterMethods.WritePropertyName}(NameHelpers.GetPropertyName(""{propertyName}"", options));
-            CollectionHelpers.WriteCollection_{Metadata.ElementType.SafeName}({writerVar}, {valueExpr}, options);";
+            CollectionHelpers.WriteCollection_{Metadata.ElementType.SafeName}({writerVar}, {valueExpr}, options, Tracker);";
             }
             else
             {
                 // For array elements, just write the collection directly
-                return $"CollectionHelpers.WriteCollection_{Metadata.ElementType.SafeName}({writerVar}, {valueExpr}, options);";
+                return $"CollectionHelpers.WriteCollection_{Metadata.ElementType.SafeName}({writerVar}, {valueExpr}, options, Tracker);";
             }
         }
     }

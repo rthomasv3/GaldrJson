@@ -34,16 +34,16 @@ namespace GaldrJson.SourceGeneration
             if (nameOverride != null)
             {
                 return $@"{writerVar}.{WriterMethods.WritePropertyName}(""{nameOverride}"");
-            DictionaryHelpers.WriteDictionary_{helperName}({writerVar}, {valueExpr}, options);";
+            DictionaryHelpers.WriteDictionary_{helperName}({writerVar}, {valueExpr}, options, Tracker);";
             }
             else if (propertyName != null)
             {
                 return $@"{writerVar}.{WriterMethods.WritePropertyName}(NameHelpers.GetPropertyName(""{propertyName}"", options));
-            DictionaryHelpers.WriteDictionary_{helperName}({writerVar}, {valueExpr}, options);";
+            DictionaryHelpers.WriteDictionary_{helperName}({writerVar}, {valueExpr}, options, Tracker);";
             }
             else
             {
-                return $"DictionaryHelpers.WriteDictionary_{helperName}({writerVar}, {valueExpr}, options);";
+                return $"DictionaryHelpers.WriteDictionary_{helperName}({writerVar}, {valueExpr}, options, Tracker);";
             }
         }
     }

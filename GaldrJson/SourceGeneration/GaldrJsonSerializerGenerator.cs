@@ -672,7 +672,7 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
         builder.AppendLine();
 
         // Generate Write method
-        using (builder.Block($"public static void WriteCollection_{safeTypeName}(Utf8JsonWriter writer, object collection, JsonSerializerOptions options)"))
+        using (builder.Block($"public static void WriteCollection_{safeTypeName}(Utf8JsonWriter writer, object collection, JsonSerializerOptions options, ReferenceTracker Tracker)"))
         {
             using (builder.Block("if (collection == null)"))
             {
@@ -686,13 +686,6 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
 
             using (builder.Block($"foreach (var item in (System.Collections.Generic.IEnumerable<{elementTypeDisplayName}>)collection)"))
             {
-                bool needsTracking = elementMetadata.IsComplex;
-
-                if (needsTracking)
-                {
-                    builder.AppendLine("ReferenceTracker Tracker = new ReferenceTracker();");
-                }
-
                 // Generate element writing code using CodeEmitter (for array elements, no property name)
                 string elementWriteCode = elementEmitter.EmitWrite("writer", "item", null);
                 builder.AppendLine(elementWriteCode);
@@ -813,7 +806,7 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
         builder.AppendLine();
 
         // Write method
-        using (builder.Block($"public static void WriteDictionary_{safeTypeName}(Utf8JsonWriter writer, Dictionary<{keyTypeName}, {valueTypeName}> dictionary, JsonSerializerOptions options)"))
+        using (builder.Block($"public static void WriteDictionary_{safeTypeName}(Utf8JsonWriter writer, Dictionary<{keyTypeName}, {valueTypeName}> dictionary, JsonSerializerOptions options, ReferenceTracker Tracker)"))
         {
             using (builder.Block("if (dictionary == null)"))
             {
