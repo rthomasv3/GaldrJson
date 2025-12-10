@@ -21,8 +21,15 @@ namespace GaldrJson.SourceGeneration
             // Determine if this is an array or list
             bool isArray = Metadata.Symbol.TypeKind == Microsoft.CodeAnalysis.TypeKind.Array;
 
-            // Generate: (List<T>)CollectionHelpers.ReadCollection_SafeName(ref reader, options, isArray)
-            return $"({Metadata.FullyQualifiedName})CollectionHelpers.ReadCollection_{Metadata.ElementType.SafeName}(ref {readerVar}, options, {isArray.ToString().ToLower()})";
+            if (isArray)
+            {
+                return $"CollectionHelpers.ReadCollectionArray_{Metadata.ElementType.SafeName}(ref {readerVar}, options)";
+            }
+            else
+            {
+                // List<T>, IList<T>, ICollection<T>, IEnumerable<T> all get List<T>
+                return $"CollectionHelpers.ReadCollection_{Metadata.ElementType.SafeName}(ref {readerVar}, options)";
+            }
         }
 
         public override string EmitWrite(string writerVar, string valueExpr, string propertyName = null, string nameOverride = null)

@@ -1,22 +1,22 @@
-﻿// GaldrJson/ReferenceTracker.cs
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace GaldrJson
 {
     /// <summary>
     /// Tracks object references during serialization to detect circular references.
+    /// Uses hash codes instead of storing object references to reduce memory pressure.
     /// </summary>
     public sealed class ReferenceTracker
     {
-        private readonly HashSet<object> _references;
+        private readonly HashSet<int> _hashCodes;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ReferenceTracker"/> class.
         /// </summary>
         public ReferenceTracker()
         {
-            _references = new HashSet<object>(new ReferenceEqualityComparer());
+            _hashCodes = new HashSet<int>();
         }
 
         /// <summary>
@@ -25,7 +25,11 @@ namespace GaldrJson
         /// </summary>
         public bool Push(object obj)
         {
-            return _references.Add(obj);
+            if (obj == null)
+                return true;
+
+            int hashCode = RuntimeHelpers.GetHashCode(obj);
+            return _hashCodes.Add(hashCode);
         }
 
         /// <summary>
@@ -33,23 +37,11 @@ namespace GaldrJson
         /// </summary>
         public void Pop(object obj)
         {
-            _references.Remove(obj);
-        }
+            if (obj == null)
+                return;
 
-        /// <summary>
-        /// Custom equality comparer that uses reference equality instead of value equality.
-        /// </summary>
-        private sealed class ReferenceEqualityComparer : IEqualityComparer<object>
-        {
-            public new bool Equals(object x, object y)
-            {
-                return ReferenceEquals(x, y);
-            }
-
-            public int GetHashCode(object obj)
-            {
-                return RuntimeHelpers.GetHashCode(obj);
-            }
+            int hashCode = RuntimeHelpers.GetHashCode(obj);
+            _hashCodes.Remove(hashCode);
         }
     }
 }

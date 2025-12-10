@@ -674,7 +674,7 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
         var elementEmitter = CodeEmitter.Create(elementMetadata);
 
         // Generate Read method
-        using (builder.Block($"public static object ReadCollection_{safeTypeName}(ref Utf8JsonReader reader, JsonSerializerOptions options, bool isArray)"))
+        using (builder.Block($"public static List<{elementTypeDisplayName}> ReadCollection_{safeTypeName}(ref Utf8JsonReader reader, JsonSerializerOptions options)"))
         {
             builder.AppendLine("if (reader.TokenType == JsonTokenType.Null)");
             using (builder.Indent())
@@ -701,13 +701,21 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
             }
 
             builder.AppendLine();
-            builder.AppendLine("return isArray ? list.ToArray() : list;");
+            builder.AppendLine("return list;");
+        }
+
+        builder.AppendLine();
+
+        using (builder.Block($"public static {elementTypeDisplayName}[] ReadCollectionArray_{safeTypeName}(ref Utf8JsonReader reader, JsonSerializerOptions options)"))
+        {
+            builder.AppendLine($"var list = ReadCollection_{safeTypeName}(ref reader, options);");
+            builder.AppendLine("return list?.ToArray();");
         }
 
         builder.AppendLine();
 
         // Generate Write method
-        using (builder.Block($"public static void WriteCollection_{safeTypeName}(Utf8JsonWriter writer, object collection, JsonSerializerOptions options, ReferenceTracker Tracker)"))
+        using (builder.Block($"public static void WriteCollection_{safeTypeName}(Utf8JsonWriter writer, System.Collections.Generic.IEnumerable<{elementTypeDisplayName}> collection, JsonSerializerOptions options, ReferenceTracker Tracker)"))
         {
             using (builder.Block("if (collection == null)"))
             {
@@ -719,7 +727,7 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
             builder.AppendLine("writer.WriteStartArray();");
             builder.AppendLine();
 
-            using (builder.Block($"foreach (var item in (System.Collections.Generic.IEnumerable<{elementTypeDisplayName}>)collection)"))
+            using (builder.Block($"foreach (var item in collection)"))  // No cast needed!
             {
                 // Generate element writing code using CodeEmitter (for array elements, no property name)
                 string elementWriteCode = elementEmitter.EmitWrite("writer", "item", null);
@@ -1178,39 +1186,39 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
                 }
                 builder.AppendLine();
 
-                builder.AppendLine("using var stream = new System.IO.MemoryStream();");
-                builder.AppendLine("using var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = options.WriteIndented });");
-                builder.AppendLine();
-
-                builder.AppendLine("ReferenceTracker tracker = new ReferenceTracker();");
-                builder.AppendLine();
-
-                using (builder.Block("switch (type)"))
+                builder.AppendLine("var bufferWriter = new System.Buffers.ArrayBufferWriter<byte>();");
+                using (builder.Block("using (var writer = new Utf8JsonWriter(bufferWriter, new JsonWriterOptions { Indented = options.WriteIndented }))"))
                 {
-                    foreach (TypeInfo type in types)
-                    {
-                        bool needsTracking = typeMetadataMap.TryGetValue(type.FullName, out var metadata) && metadata.IsComplex;
+                    builder.AppendLine("ReferenceTracker tracker = new ReferenceTracker();");
+                    builder.AppendLine();
 
-                        builder.AppendLine($"case Type t when t == typeof({type.FullName}):");
-                        using (builder.Indent())
+                    using (builder.Block("switch (type)"))
+                    {
+                        foreach (TypeInfo type in types)
                         {
-                            if (needsTracking)
+                            bool needsTracking = typeMetadataMap.TryGetValue(type.FullName, out var metadata) && metadata.IsComplex;
+
+                            builder.AppendLine($"case Type t when t == typeof({type.FullName}):");
+                            using (builder.Indent())
                             {
-                                builder.AppendLine($"{type.FieldName}.Tracker = tracker;");
+                                if (needsTracking)
+                                {
+                                    builder.AppendLine($"{type.FieldName}.Tracker = tracker;");
+                                }
+                                builder.AppendLine($"{type.FieldName}.Write(writer, ({type.FullName})value, serializerOptions);");
+                                builder.AppendLine("break;");
                             }
-                            builder.AppendLine($"{type.FieldName}.Write(writer, ({type.FullName})value, serializerOptions);");
-                            builder.AppendLine("break;");
                         }
+
+                        builder.AppendLine("default:");
+                        using (builder.Indent())
+                            builder.AppendLine("throw new NotSupportedException($\"Type {type} is not registered for serialization\");");
                     }
 
-                    builder.AppendLine("default:");
-                    using (builder.Indent())
-                        builder.AppendLine("throw new NotSupportedException($\"Type {type} is not registered for serialization\");");
+                    builder.AppendLine();
+                    builder.AppendLine("writer.Flush();");
+                    builder.AppendLine("return System.Text.Encoding.UTF8.GetString(bufferWriter.WrittenSpan);");
                 }
-
-                builder.AppendLine();
-                builder.AppendLine("writer.Flush();");
-                builder.AppendLine("return System.Text.Encoding.UTF8.GetString(stream.ToArray());");
             }
 
             builder.AppendLine();
@@ -1247,23 +1255,45 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
                 }
                 builder.AppendLine();
 
-                builder.AppendLine("var bytes = System.Text.Encoding.UTF8.GetBytes(json);");
-                builder.AppendLine("var reader = new Utf8JsonReader(bytes);");
-                builder.AppendLine("reader.Read(); // Move to first token");
+                builder.AppendLine("byte[] tempArray = null;");
+                builder.AppendLine("int maxByteCount = System.Text.Encoding.UTF8.GetMaxByteCount(json.Length);");
                 builder.AppendLine();
 
-                using (builder.Block("switch (type)"))
-                {
-                    foreach (TypeInfo type in types)
-                    {
-                        builder.AppendLine($"case Type t when t == typeof({type.FullName}):");
-                        using (builder.Indent())
-                            builder.AppendLine($"return {type.FieldName}.Read(ref reader, typeof({type.FullName}), serializerOptions);");
-                    }
+                builder.AppendLine("// Use stack alloc for small JSON, ArrayPool for larger");
+                builder.AppendLine("System.Span<byte> utf8Bytes = maxByteCount <= 512 ? stackalloc byte[512] : (tempArray = System.Buffers.ArrayPool<byte>.Shared.Rent(maxByteCount));");
+                builder.AppendLine();
 
-                    builder.AppendLine("default:");
-                    using (builder.Indent())
-                        builder.AppendLine("throw new NotSupportedException($\"Type {type.FullName} is not registered for deserialization\");");
+                using (builder.Block("try"))
+                {
+                    builder.AppendLine("int actualBytes = System.Text.Encoding.UTF8.GetBytes(json, utf8Bytes);");
+                    builder.AppendLine("utf8Bytes = utf8Bytes.Slice(0, actualBytes);");
+                    builder.AppendLine();
+
+                    builder.AppendLine("var reader = new Utf8JsonReader(utf8Bytes);");
+                    builder.AppendLine("reader.Read(); // Move to first token");
+                    builder.AppendLine();
+
+                    using (builder.Block("switch (type)"))
+                    {
+                        foreach (TypeInfo type in types)
+                        {
+                            builder.AppendLine($"case Type t when t == typeof({type.FullName}):");
+                            using (builder.Indent())
+                                builder.AppendLine($"return {type.FieldName}.Read(ref reader, typeof({type.FullName}), serializerOptions);");
+                        }
+
+                        builder.AppendLine("default:");
+                        using (builder.Indent())
+                            builder.AppendLine("throw new NotSupportedException($\"Type {type.FullName} is not registered for deserialization\");");
+                    }
+                }
+
+                using (builder.Block("finally"))
+                {
+                    using (builder.Block("if (tempArray != null)"))
+                    {
+                        builder.AppendLine("System.Buffers.ArrayPool<byte>.Shared.Return(tempArray);");
+                    }
                 }
             }
         }
