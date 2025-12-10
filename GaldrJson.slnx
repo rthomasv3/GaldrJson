@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/Tests/">
+    <Project Path="Tests/GaldrJson.PerformanceTests/GaldrJson.PerformanceTests.csproj" Id="db51af83-e8ad-4247-aaf3-898f7616ebd9" />
     <Project Path="Tests/GaldrJson.Tests/GaldrJson.Tests.csproj" />
   </Folder>
   <Project Path="GaldrJson.AspNetCore/GaldrJson.AspNetCore.csproj" Id="10e803ac-0a95-46da-a1b6-d51b0ad967d8" />

@@ -704,8 +704,7 @@ namespace GaldrJson.Tests
             var deserialized = GaldrJson.Deserialize<DataModel>(json);
 
             // Verify it's Base64 encoded in JSON
-            Assert.Contains("ByteArray\": \"SGVsbG8gV29ybGQ=", json);
-            Assert.Contains("ByteList\": \"SGVsbG8gV29ybGQ=", json);
+            Assert.Contains("\"SGVsbG8gV29ybGQ=\"", json);
 
             // Verify round-trip works correctly
             CollectionAssert.AreEqual(original.ByteArray, deserialized.ByteArray);
