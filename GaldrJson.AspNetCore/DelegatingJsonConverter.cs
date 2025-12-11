@@ -44,7 +44,7 @@ internal class DelegatingJsonConverter : JsonConverter<object>
             throw new NotSupportedException($"Type {value?.GetType().FullName ?? _typeToConvert.FullName} is not registered for serialization. Add [GaldrJsonSerializable] attribute to the type.");
         }
 
-        ReferenceTracker tracker = new();
+        ReferenceTracker tracker = options.ReferenceHandler != null ? new() : null;
         serializer.Write(writer, value, _typeToConvert, options, tracker);
     }
 

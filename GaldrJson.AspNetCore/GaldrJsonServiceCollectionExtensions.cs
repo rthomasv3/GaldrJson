@@ -23,23 +23,35 @@ public static class GaldrJsonServiceCollectionExtensions
     /// support in your application's dependency injection container.
     /// </remarks>
     /// <param name="services">The service collection to which the Galdr JSON services will be added. Cannot be null.</param>
+    /// <param name="galdrJsonOptions">Optional json serialization/deserialization options .</param>
     /// <returns>The same <see cref="IServiceCollection"/> instance so that additional calls can be chained.</returns>
-    public static IServiceCollection AddGaldrJson(this IServiceCollection services)
+    public static IServiceCollection AddGaldrJson(this IServiceCollection services, GaldrJsonOptions galdrJsonOptions = null)
     {
         services.AddSingleton<GaldrJsonSerializer>();
         services.AddSingleton<IGaldrJsonSerializer>(sp => sp.GetRequiredService<GaldrJsonSerializer>());
 
         services.ConfigureHttpJsonOptions(options =>
         {
-            // Add the factory (delegates to your registry)
+            JsonNamingPolicy namingPolicy = null;
+            if (galdrJsonOptions?.PropertyNamingPolicy == PropertyNamingPolicy.CamelCase)
+            {
+                namingPolicy = JsonNamingPolicy.CamelCase;
+            }
+            else if (galdrJsonOptions?.PropertyNamingPolicy == PropertyNamingPolicy.SnakeCase)
+            {
+                namingPolicy = JsonNamingPolicy.SnakeCaseLower;
+            }
+            else if (galdrJsonOptions?.PropertyNamingPolicy == PropertyNamingPolicy.KebabCase)
+            {
+                namingPolicy = JsonNamingPolicy.KebabCaseLower;
+            }
+
             options.SerializerOptions.Converters.Add(new GaldrJsonConverterFactory());
 
-            // Match your defaults (e.g., from ToCamelCase)
-            options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-            options.SerializerOptions.WriteIndented = false; // Production default
-
-            // Optional: Other STJ tweaks (e.g., ignore nulls if your gen supports)
-            options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+            options.SerializerOptions.PropertyNamingPolicy = namingPolicy;
+            options.SerializerOptions.WriteIndented = galdrJsonOptions?.WriteIndented ?? false;
+            options.SerializerOptions.PropertyNameCaseInsensitive = galdrJsonOptions?.PropertyNameCaseInsensitive ?? false;
+            options.SerializerOptions.ReferenceHandler = galdrJsonOptions?.DetectCycles == true ? ReferenceHandler.Preserve : null;
         });
 
         return services;
