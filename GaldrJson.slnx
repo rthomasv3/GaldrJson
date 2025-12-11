@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".github/workflows/release-galdrjson.yml" />
+  </Folder>
   <Folder Name="/Tests/">
     <Project Path="Tests/GaldrJson.PerformanceTests/GaldrJson.PerformanceTests.csproj" Id="db51af83-e8ad-4247-aaf3-898f7616ebd9" />
     <Project Path="Tests/GaldrJson.Tests/GaldrJson.Tests.csproj" />
