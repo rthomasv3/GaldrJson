@@ -14,8 +14,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GaldrJson\GaldrJson.csproj" Condition="'$(Configuration)' == 'Debug'" />
-    <PackageReference Include="GaldrJson" Version="1.0.0" Condition="'$(Configuration)' == 'Release'" />
+    <ProjectReference Include="..\GaldrJson\GaldrJson.csproj">
+      <PrivateAssets>none</PrivateAssets>
+    </ProjectReference>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
