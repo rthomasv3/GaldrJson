@@ -239,7 +239,34 @@ GaldrJson supports a comprehensive set of .NET types:
 
 GaldrJson uses compile-time code generation to achieve performance competitive with System.Text.Json while maintaining full AOT compatibility.
 
-### Benchmark Results
+With some settings, like when detecting infinite loops in serialization, GaldrJson significantly outperforms it.
+
+_Benchmarks were performed with a complex object graph (50 products, 30 orders). See Tests/GaldrJson.PerformanceTests._
+
+### Benchmark Results (Default Settings)
+
+```
+BenchmarkDotNet v0.15.8, Windows 11 (10.0.26100.7462/24H2/2024Update/HudsonValley)
+AMD Ryzen 9 9950X 4.30GHz, 1 CPU, 32 logical and 16 physical cores
+.NET SDK 10.0.101
+  [Host]     : .NET 10.0.1 (10.0.1, 10.0.125.57005), X64 RyuJIT x86-64-v4
+  Job-FBVPNM : .NET 10.0.1 (10.0.1, 10.0.125.57005), X64 RyuJIT x86-64-v4
+
+IterationCount=25
+
+| Method                                      | Mean      | Error    | StdDev   | Rank | Gen0    | Gen1    | Gen2    | Allocated |
+|-------------------------------------------- |----------:|---------:|---------:|-----:|--------:|--------:|--------:|----------:|
+| 'Serialize (System.Text.Json Source Gen)'   |  56.00 us | 1.161 us | 1.550 us |    1 | 26.9775 | 26.9775 | 26.9775 |  83.21 KB |
+| 'Deserialize (GaldrJson)'                   |  62.84 us | 0.850 us | 1.134 us |    2 |  4.1504 |  0.7324 |       - |  69.01 KB |
+| 'Serialize (GaldrJson)'                     |  64.33 us | 1.068 us | 1.426 us |    2 | 26.9775 | 26.9775 | 26.9775 |  83.42 KB |
+| 'Serialize (System.Text.Json)'              |  70.27 us | 1.710 us | 2.283 us |    3 | 26.9775 | 26.9775 | 26.9775 |  83.52 KB |
+| 'Deserialize (System.Text.Json Source Gen)' |  78.46 us | 1.038 us | 1.386 us |    4 |  4.1504 |  0.7324 |       - |  69.27 KB |
+| 'Deserialize (System.Text.Json)'            |  79.95 us | 1.272 us | 1.699 us |    4 |  4.1504 |  0.7324 |       - |  69.27 KB |
+| 'Serialize (Newtonsoft.Json)'               | 122.01 us | 3.797 us | 4.937 us |    5 | 26.9775 | 26.9775 | 26.9775 | 231.88 KB |
+| 'Deserialize (Newtonsoft.Json)'             | 146.07 us | 2.361 us | 3.151 us |    6 |  6.3477 |  1.2207 |       - | 106.24 KB |
+```
+
+### Benchmark Results (Cycle Detection On)
 
 ```
 BenchmarkDotNet v0.15.8, Windows 11 (10.0.26100.7462/24H2/2024Update/HudsonValley)
@@ -261,8 +288,6 @@ IterationCount=25
 | 'Serialize (Newtonsoft.Json)'               | 119.01 us | 3.687 us | 4.922 us |    3 | 26.8555 | 26.8555 | 26.8555 | 231.89 KB |
 | 'Deserialize (Newtonsoft.Json)'             | 142.24 us | 2.221 us | 2.809 us |    4 |  6.3477 |  1.2207 |       - | 106.24 KB |
 ```
-
-_Benchmarks performed with a complex object graph (50 products, 30 orders). See Tests/GaldrJson.PerformanceTests_
 
 *Note: System.Text.Json uses `ReferenceHandler.Preserve` (writes $id/$ref), GaldrJson uses `DetectCycles = true` (throws on cycle). Both prevent infinite loops but with different approaches.*
 
