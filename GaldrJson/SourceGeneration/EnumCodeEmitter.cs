@@ -18,14 +18,17 @@ namespace GaldrJson.SourceGeneration
             return $"({Metadata.FullyQualifiedName}){readerVar}.{ReaderMethods.GetInt32}";
         }
 
-        public override string EmitWrite(string writerVar, string valueExpr, string propertyName = null, string nameOverride = null)
+        public override string EmitWrite(string writerVar, string valueExpr, PropertyInfo property)
         {
-            if (nameOverride != null)
-                return $"{writerVar}.{WriterMethods.WriteNumber}(\"{nameOverride}\", (int){valueExpr});";
-            else if (propertyName != null)
-                return $"{writerVar}.{WriterMethods.WriteNumber}(NameHelpers.GetPropertyName(\"{propertyName}\", options), (int){valueExpr});";
+            if (property != null)
+            {
+                string propNameExpr = GetPropertyNameExpression(property);
+                return $"{writerVar}.{WriterMethods.WriteNumber}({propNameExpr}, (int){valueExpr});";
+            }
             else
+            {
                 return $"{writerVar}.{WriterMethods.WriteNumberValue}((int){valueExpr});";
+            }
         }
     }
 }

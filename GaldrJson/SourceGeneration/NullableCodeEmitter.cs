@@ -29,13 +29,15 @@ namespace GaldrJson.SourceGeneration
             return $"{readerVar}.TokenType == {JsonTokenTypes.Null} ? null : ({Metadata.FullyQualifiedName}){underlyingRead}";
         }
 
-        public override string EmitWrite(string writerVar, string valueExpr, string propertyName = null, string nameOverride = null)
+        public override string EmitWrite(string writerVar, string valueExpr, PropertyInfo property)
         {
             // Generate null-checking code with proper indentation
-            var underlyingWrite = _underlyingEmitter.EmitWrite(writerVar, $"{valueExpr}.Value", propertyName);
+            var underlyingWrite = _underlyingEmitter.EmitWrite(writerVar, $"{valueExpr}.Value", property);
 
-            if (nameOverride != null)
+            if (property != null)
             {
+                string propNameExpr = GetPropertyNameExpression(property);
+
                 // For properties, write null value when HasValue is false
                 return $@"if ({valueExpr}.HasValue)
             {{
@@ -43,19 +45,7 @@ namespace GaldrJson.SourceGeneration
             }}
             else
             {{
-                {writerVar}.{WriterMethods.WriteNull}(""{nameOverride}"");
-            }}";
-            }
-            else if (propertyName != null)
-            {
-                // For properties, write null value when HasValue is false
-                return $@"if ({valueExpr}.HasValue)
-            {{
-                {underlyingWrite}
-            }}
-            else
-            {{
-                {writerVar}.{WriterMethods.WriteNull}(NameHelpers.GetPropertyName(""{propertyName}"", options));
+                {writerVar}.{WriterMethods.WriteNull}({propNameExpr});
             }}";
             }
             else

@@ -331,6 +331,9 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
             return ShouldSerializeType(namedType.TypeArguments[0]);
         }
 
+        if (IsCollectionType(typeSymbol))
+            return false;
+
         // Skip system types like Guid, DateTime, etc. that have built-in JSON support
         string fullName = typeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         if ((fullName.StartsWith("System.") || fullName.StartsWith("global::System.")) &&
@@ -636,61 +639,6 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
     {
         using (builder.Block("internal static class NameHelpers"))
         {
-            using (builder.Block("public static bool MatchesPropertyName(string jsonName, string expectedName, JsonSerializerOptions options)"))
-            {
-                using (builder.Block("if (options.PropertyNameCaseInsensitive)"))
-                {
-                    builder.AppendLine("return string.Equals(jsonName, expectedName, StringComparison.OrdinalIgnoreCase);");
-                }
-                builder.AppendLine("return jsonName == expectedName;");
-            }
-
-            builder.AppendLine();
-
-            using (builder.Block("public static string GetPropertyName(string baseName, JsonSerializerOptions options)"))
-            {
-                builder.AppendLine("return options.PropertyNamingPolicy?.ConvertName(baseName) ?? baseName;");
-            }
-
-            builder.AppendLine();
-
-            using (builder.Block("private static string ToCamelCase(string name)"))
-            {
-                builder.AppendLine("return char.ToLowerInvariant(name[0]) + name.Substring(1);");
-            }
-
-            builder.AppendLine();
-
-            using (builder.Block("private static string ToSnakeCaseLower(string name)"))
-            {
-                builder.AppendLine("var sb = new System.Text.StringBuilder();");
-                using (builder.Block("for (int i = 0; i < name.Length; ++i)"))
-                {
-                    builder.AppendLine("if (i > 0 && char.IsUpper(name[i]))");
-                    using (builder.Indent())
-                        builder.AppendLine("sb.Append('_');");
-                    builder.AppendLine("sb.Append(char.ToLowerInvariant(name[i]));");
-                }
-                builder.AppendLine("return sb.ToString().ToLower();");
-            }
-
-            builder.AppendLine();
-
-            using (builder.Block("private static string ToKebabCaseLower(string name)"))
-            {
-                builder.AppendLine("var sb = new System.Text.StringBuilder();");
-                using (builder.Block("for (int i = 0; i < name.Length; ++i)"))
-                {
-                    builder.AppendLine("if (i > 0 && char.IsUpper(name[i]))");
-                    using (builder.Indent())
-                        builder.AppendLine("sb.Append('-');");
-                    builder.AppendLine("sb.Append(char.ToLowerInvariant(name[i]));");
-                }
-                builder.AppendLine("return sb.ToString().ToLower();");
-            }
-
-            builder.AppendLine();
-
             using (builder.Block("public static bool MatchesPropertyNameUtf8(System.ReadOnlySpan<byte> jsonPropertyName, byte[] exactName, byte[] camelName, byte[] snakeName, byte[] kebabName, byte[] customName, System.Text.Json.JsonSerializerOptions options)"))
             {
                 builder.AppendLine("// Select the correct name variant based on naming policy");
@@ -768,6 +716,36 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
 
                 builder.AppendLine();
                 builder.AppendLine("return true;");
+            }
+
+            builder.AppendLine();
+
+            using (builder.Block("public static System.ReadOnlySpan<byte> GetPropertyNameUtf8(byte[] exactName, byte[] camelName, byte[] snakeName, byte[] kebabName, byte[] customName, System.Text.Json.JsonSerializerOptions options)"))
+            {
+                builder.AppendLine("// Custom name takes precedence over naming policy");
+                using (builder.Block("if (customName != null)"))
+                {
+                    builder.AppendLine("return customName;");
+                }
+
+                builder.AppendLine();
+                builder.AppendLine("// Select based on naming policy");
+                using (builder.Block("if (options.PropertyNamingPolicy == System.Text.Json.JsonNamingPolicy.CamelCase)"))
+                {
+                    builder.AppendLine("return camelName;");
+                }
+                using (builder.Block("else if (options.PropertyNamingPolicy == System.Text.Json.JsonNamingPolicy.SnakeCaseLower)"))
+                {
+                    builder.AppendLine("return snakeName;");
+                }
+                using (builder.Block("else if (options.PropertyNamingPolicy == System.Text.Json.JsonNamingPolicy.KebabCaseLower)"))
+                {
+                    builder.AppendLine("return kebabName;");
+                }
+                using (builder.Block("else"))
+                {
+                    builder.AppendLine("return exactName;");
+                }
             }
         }
 
@@ -1330,7 +1308,7 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
     {
         var propertyMetadata = metadataCache.GetOrCreate(property.TypeSymbol);
         var emitter = CodeEmitter.Create(propertyMetadata);
-        var writeCode = emitter.EmitWrite("writer", $"value.{property.Name}", property.Name, property.JsonName);
+        var writeCode = emitter.EmitWrite("writer", $"value.{property.Name}", property);
 
         builder.AppendLine(writeCode);
     }

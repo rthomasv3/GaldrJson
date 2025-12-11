@@ -53,26 +53,21 @@ namespace GaldrJson.SourceGeneration
             }
         }
 
-        public override string EmitWrite(string writerVar, string valueExpr, string propertyName = null, string nameOverride = null)
+        public override string EmitWrite(string writerVar, string valueExpr, PropertyInfo property)
         {
             var specialType = Metadata.Symbol.SpecialType;
+
+            string propNameExpr = GetPropertyNameExpression(property);
 
             // Handle string separately for null checking
             if (specialType == SpecialType.System_String)
             {
-                if (nameOverride != null)
+                if (propNameExpr != null)
                 {
                     return $@"if ({valueExpr} != null)
-                {writerVar}.{WriterMethods.WriteString}(""{nameOverride}"", {valueExpr});
+                {writerVar}.{WriterMethods.WriteString}({propNameExpr}, {valueExpr});
             else
-                {writerVar}.{WriterMethods.WriteNull}(""{nameOverride}"");";
-                }
-                else if (propertyName != null)
-                {
-                    return $@"if ({valueExpr} != null)
-                {writerVar}.{WriterMethods.WriteString}(NameHelpers.GetPropertyName(""{propertyName}"", options), {valueExpr});
-            else
-                {writerVar}.{WriterMethods.WriteNull}(NameHelpers.GetPropertyName(""{propertyName}"", options));";
+                {writerVar}.{WriterMethods.WriteNull}({propNameExpr});";
                 }
                 else
                 {
@@ -86,10 +81,8 @@ namespace GaldrJson.SourceGeneration
             // Handle char specially (needs ToString())
             if (specialType == SpecialType.System_Char)
             {
-                if (nameOverride != null)
-                    return $"{writerVar}.{WriterMethods.WriteString}(\"{nameOverride}\", {valueExpr}.ToString());";
-                else if (propertyName != null)
-                    return $"{writerVar}.{WriterMethods.WriteString}(NameHelpers.GetPropertyName(\"{propertyName}\", options), {valueExpr}.ToString());";
+                if (propNameExpr != null)
+                    return $"{writerVar}.{WriterMethods.WriteString}({propNameExpr}, {valueExpr}.ToString());";
                 else
                     return $"{writerVar}.{WriterMethods.WriteStringValue}({valueExpr}.ToString());";
             }
@@ -97,10 +90,8 @@ namespace GaldrJson.SourceGeneration
             // Numeric types
             if (IsNumericType(specialType))
             {
-                if (nameOverride != null)
-                    return $"{writerVar}.{WriterMethods.WriteNumber}(\"{nameOverride}\", {valueExpr});";
-                else if (propertyName != null)
-                    return $"{writerVar}.{WriterMethods.WriteNumber}(NameHelpers.GetPropertyName(\"{propertyName}\", options), {valueExpr});";
+                if (propNameExpr != null)
+                    return $"{writerVar}.{WriterMethods.WriteNumber}({propNameExpr}, {valueExpr});";
                 else
                     return $"{writerVar}.{WriterMethods.WriteNumberValue}({valueExpr});";
             }
@@ -108,10 +99,8 @@ namespace GaldrJson.SourceGeneration
             // Boolean
             if (specialType == SpecialType.System_Boolean)
             {
-                if (nameOverride != null)
-                    return $"{writerVar}.{WriterMethods.WriteBoolean}(\"{nameOverride}\", {valueExpr});";
-                else if (propertyName != null)
-                    return $"{writerVar}.{WriterMethods.WriteBoolean}(NameHelpers.GetPropertyName(\"{propertyName}\", options), {valueExpr});";
+                if (propNameExpr != null)
+                    return $"{writerVar}.{WriterMethods.WriteBoolean}({propNameExpr}, {valueExpr});";
                 else
                     return $"{writerVar}.{WriterMethods.WriteBooleanValue}({valueExpr});";
             }
@@ -119,10 +108,8 @@ namespace GaldrJson.SourceGeneration
             // DateTime
             if (specialType == SpecialType.System_DateTime)
             {
-                if (nameOverride != null)
-                    return $"{writerVar}.{WriterMethods.WriteString}(\"{nameOverride}\", {valueExpr});";
-                else if (propertyName != null)
-                    return $"{writerVar}.{WriterMethods.WriteString}(NameHelpers.GetPropertyName(\"{propertyName}\", options), {valueExpr});";
+                if (propNameExpr != null)
+                    return $"{writerVar}.{WriterMethods.WriteString}({propNameExpr}, {valueExpr});";
                 else
                     return $"{writerVar}.{WriterMethods.WriteStringValue}({valueExpr});";
             }

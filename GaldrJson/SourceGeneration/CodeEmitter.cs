@@ -27,10 +27,9 @@ namespace GaldrJson.SourceGeneration
         /// </summary>
         /// <param name="writerVar">The name of the writer variable.</param>
         /// <param name="valueExpr">Expression representing the value to write.</param>
-        /// <param name="propertyName">Optional property name for writing object properties.</param>
-        /// <param name="nameOverride">Optional property override name.</param>
+        /// <param name="property">Property information for writing object properties.</param>
         /// <returns>C# statement(s) that write the value.</returns>
-        public abstract string EmitWrite(string writerVar, string valueExpr, string propertyName = null, string nameOverride = null);
+        public abstract string EmitWrite(string writerVar, string valueExpr, PropertyInfo property);
 
         /// <summary>
         /// Factory method to create the appropriate CodeEmitter for the given type metadata.
@@ -61,6 +60,14 @@ namespace GaldrJson.SourceGeneration
                 default:
                     throw new NotSupportedException($"Type kind {metadata.Kind} is not supported.");
             }
+        }
+
+        protected string GetPropertyNameExpression(PropertyInfo property)
+        {
+            if (property == null)
+                return null;  // Array element case - no property name
+
+            return $"NameHelpers.GetPropertyNameUtf8(Prop_{property.Name}_Exact, Prop_{property.Name}_Camel, Prop_{property.Name}_Snake, Prop_{property.Name}_Kebab, Prop_{property.Name}_Custom, options)";
         }
     }
 }

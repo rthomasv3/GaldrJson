@@ -25,20 +25,16 @@ namespace GaldrJson.SourceGeneration
             return $"DictionaryHelpers.ReadDictionary_{helperName}(ref {readerVar}, options)";
         }
 
-        public override string EmitWrite(string writerVar, string valueExpr, string propertyName = null, string nameOverride = null)
+        public override string EmitWrite(string writerVar, string valueExpr, PropertyInfo property)
         {
             var (keyMetadata, valueMetadata) = Metadata.DictionaryTypes.Value;
             var helperName = $"{keyMetadata.SafeName}_{valueMetadata.SafeName}";
 
-            // If we have a property name, write the property name first
-            if (nameOverride != null)
+            if (property != null)
             {
-                return $@"{writerVar}.{WriterMethods.WritePropertyName}(""{nameOverride}"");
-            DictionaryHelpers.WriteDictionary_{helperName}({writerVar}, {valueExpr}, options, Tracker);";
-            }
-            else if (propertyName != null)
-            {
-                return $@"{writerVar}.{WriterMethods.WritePropertyName}(NameHelpers.GetPropertyName(""{propertyName}"", options));
+                string propNameExpr = GetPropertyNameExpression(property);
+
+                return $@"{writerVar}.{WriterMethods.WritePropertyName}({propNameExpr});
             DictionaryHelpers.WriteDictionary_{helperName}({writerVar}, {valueExpr}, options, Tracker);";
             }
             else

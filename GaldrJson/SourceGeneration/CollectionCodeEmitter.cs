@@ -32,17 +32,14 @@ namespace GaldrJson.SourceGeneration
             }
         }
 
-        public override string EmitWrite(string writerVar, string valueExpr, string propertyName = null, string nameOverride = null)
+        public override string EmitWrite(string writerVar, string valueExpr, PropertyInfo property)
         {
             // If we have a property name, write the property name first
-            if (nameOverride != null)
+            if (property != null)
             {
-                return $@"{writerVar}.{WriterMethods.WritePropertyName}(""{nameOverride}"");
-            CollectionHelpers.WriteCollection_{Metadata.ElementType.SafeName}({writerVar}, {valueExpr}, options, Tracker);";
-            }
-            else if (propertyName != null)
-            {
-                return $@"{writerVar}.{WriterMethods.WritePropertyName}(NameHelpers.GetPropertyName(""{propertyName}"", options));
+                string propNameExpr = GetPropertyNameExpression(property);
+
+                return $@"{writerVar}.{WriterMethods.WritePropertyName}({propNameExpr});
             CollectionHelpers.WriteCollection_{Metadata.ElementType.SafeName}({writerVar}, {valueExpr}, options, Tracker);";
             }
             else
