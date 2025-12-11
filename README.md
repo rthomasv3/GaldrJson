@@ -6,14 +6,14 @@ GaldrJson is a high-performance JSON serialization library that uses source gene
 
 ## Features
 
-**Zero Reflection** All serialization code is generated at compile time
-**Native AOT Ready** Full compatibility with Native AOT compilation
-**High Performance** Competitive with System.Text.Json, faster than Newtonsoft.Json
-**Simple API** Minimal configuration, maximum productivity
-**Flexible Naming Policies** camelCase, snake_case, kebab-case, exact, or custom
-**ASP.NET Core Integration** First-class support for Minimal APIs
-**Comprehensive Type Support** Primitives, collections, dictionaries, nested objects, nullables, enums
-**Cycle Detection** Optional circular reference detection
+- **Zero Reflection** - All serialization code is generated at compile time
+- **Native AOT Ready** - Full compatibility with Native AOT compilation
+- **High Performance** - Competitive with System.Text.Json, faster than Newtonsoft.Json
+- **Simple API** - Minimal configuration, maximum productivity
+- **Flexible Naming Policies** - camelCase, snake_case, kebab-case, exact, or custom
+- **ASP.NET Core Integration** - First-class support for Minimal APIs
+- **Comprehensive Type Support** - Primitives, collections, dictionaries, nested objects, nullables, enums
+- **Cycle Detection** - Optional circular reference detection
 
 ## Installation
 
@@ -179,6 +179,48 @@ app.MapGet("/api/data", () => new ApiResponse
 app.Run();
 ```
 
+### Dependency Injection and Testability
+
+GaldrJson provides the `IGaldrJsonSerializer` interface for easy testing and dependency injection:
+```csharp
+public class OrderService
+{
+    private readonly IGaldrJsonSerializer _serializer;
+    
+    public OrderService(IGaldrJsonSerializer serializer)
+    {
+        _serializer = serializer;
+    }
+    
+    public string ExportOrder(Order order)
+    {
+        return _serializer.Serialize(order);
+    }
+}
+```
+
+The interface is automatically registered when calling `AddGaldrJson()`, making it easy to inject into your services or mock in unit tests.
+```csharp
+builder.Services.AddGaldrJson();
+
+// Now you can inject IGaldrJsonSerializer anywhere
+```
+
+#### IGaldrJsonSerializer Methods
+```
+string Serialize<T>(T value, GaldrJsonOptions options = null);
+
+bool TrySerialize(object value, Type actualType, out string json, GaldrJsonOptions options = null);
+
+bool TrySerialize<T>(T value, out string json, GaldrJsonOptions options = null);
+
+T Deserialize<T>(string json, GaldrJsonOptions options = null);
+
+bool TryDeserialize(string json, Type targetType, out object value, GaldrJsonOptions options = null);
+
+bool TryDeserialize<T>(string json, out T value, GaldrJsonOptions options = null);
+```
+
 ## Supported Types
 
 GaldrJson supports a comprehensive set of .NET types:
@@ -199,16 +241,30 @@ GaldrJson uses compile-time code generation to achieve performance competitive w
 
 ### Benchmark Results
 
-| Method                           |      Mean |    Error |   StdDev |    Median | Rank |    Gen0 |    Gen1 |    Gen2 | Allocated |
-| -------------------------------- | --------: | -------: | -------: | --------: | ---: | ------: | ------: | ------: | --------: |
-| 'Deserialize (GaldrJson)'        |  62.58 us | 1.211 us | 1.812 us |  61.58 us |    1 |  4.1504 |  0.7324 |       - |  69.01 KB |
-| 'Serialize (GaldrJson)'          |  70.20 us | 1.389 us | 1.600 us |  69.95 us |    2 | 26.9775 | 26.9775 | 26.9775 |  96.09 KB |
-| 'Serialize (System.Text.Json)'   |  86.88 us | 1.734 us | 2.129 us |  86.41 us |    3 | 30.2734 | 30.2734 | 30.2734 | 119.21 KB |
-| 'Deserialize (System.Text.Json)' |  87.88 us | 1.642 us | 1.536 us |  87.93 us |    3 |  3.9063 |  0.4883 |       - |  69.39 KB |
-| 'Serialize (Newtonsoft.Json)'    | 120.66 us | 2.377 us | 5.317 us | 123.46 us |    4 | 26.9775 | 26.9775 | 26.9775 | 231.89 KB |
-| 'Deserialize (Newtonsoft.Json)'  | 141.33 us | 2.802 us | 3.335 us | 140.94 us |    5 |  6.3477 |  1.2207 |       - | 106.24 KB |
+```
+BenchmarkDotNet v0.15.8, Windows 11 (10.0.26100.7462/24H2/2024Update/HudsonValley)
+AMD Ryzen 9 9950X 4.30GHz, 1 CPU, 32 logical and 16 physical cores
+.NET SDK 10.0.101
+  [Host]     : .NET 10.0.1 (10.0.1, 10.0.125.57005), X64 RyuJIT x86-64-v4
+  Job-FBVPNM : .NET 10.0.1 (10.0.1, 10.0.125.57005), X64 RyuJIT x86-64-v4
 
-_Benchmarks performed on .NET 10.0 with a complex object graph (50 products, 30 orders). See Tests/GaldrJson.PerformanceTests_
+IterationCount=25
+
+| Method                                      | Mean      | Error    | StdDev   | Rank | Gen0    | Gen1    | Gen2    | Allocated |
+|-------------------------------------------- |----------:|---------:|---------:|-----:|--------:|--------:|--------:|----------:|
+| 'Deserialize (GaldrJson)'                   |  67.01 us | 1.957 us | 2.612 us |    1 |  4.1504 |  0.7324 |       - |  69.01 KB |
+| 'Serialize (GaldrJson)'                     |  68.66 us | 1.232 us | 1.644 us |    1 | 26.9775 | 26.9775 | 26.9775 |  96.09 KB |
+| 'Deserialize (System.Text.Json Source Gen)' |  83.79 us | 0.454 us | 0.523 us |    2 |  4.1504 |  0.8545 |       - |  69.39 KB |
+| 'Deserialize (System.Text.Json)'            |  86.21 us | 1.084 us | 1.447 us |    2 |  3.9063 |  0.4883 |       - |  69.39 KB |
+| 'Serialize (System.Text.Json)'              |  88.42 us | 1.863 us | 2.423 us |    2 | 30.2734 | 30.2734 | 30.2734 |  119.2 KB |
+| 'Serialize (System.Text.Json Source Gen)'   |  93.11 us | 2.820 us | 3.765 us |    2 | 30.2734 | 30.2734 | 30.2734 | 119.21 KB |
+| 'Serialize (Newtonsoft.Json)'               | 119.01 us | 3.687 us | 4.922 us |    3 | 26.8555 | 26.8555 | 26.8555 | 231.89 KB |
+| 'Deserialize (Newtonsoft.Json)'             | 142.24 us | 2.221 us | 2.809 us |    4 |  6.3477 |  1.2207 |       - | 106.24 KB |
+```
+
+_Benchmarks performed with a complex object graph (50 products, 30 orders). See Tests/GaldrJson.PerformanceTests_
+
+*Note: System.Text.Json uses `ReferenceHandler.Preserve` (writes $id/$ref), GaldrJson uses `DetectCycles = true` (throws on cycle). Both prevent infinite loops but with different approaches.*
 
 ## How It Works
 
@@ -272,8 +328,8 @@ var options = new GaldrJsonOptions
     // Write indented/pretty JSON (default: false in Release, true in Debug)
     WriteIndented = true,
 
-    // Case-insensitive property matching during deserialization (default: true)
-    PropertyNameCaseInsensitive = true,
+    // Case-insensitive property matching during deserialization (default: false)
+    PropertyNameCaseInsensitive = false,
 
     // Detect and throw on circular references (default: false)
     DetectCycles = true

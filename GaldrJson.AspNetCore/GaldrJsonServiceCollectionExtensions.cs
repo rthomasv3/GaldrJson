@@ -27,7 +27,7 @@ public static class GaldrJsonServiceCollectionExtensions
     public static IServiceCollection AddGaldrJson(this IServiceCollection services)
     {
         services.AddSingleton<GaldrJsonSerializer>();
-        services.AddSingleton<IGaldrJsonSerializer, GaldrJsonSerializer>();
+        services.AddSingleton<IGaldrJsonSerializer>(sp => sp.GetRequiredService<GaldrJsonSerializer>());
 
         services.ConfigureHttpJsonOptions(options =>
         {
