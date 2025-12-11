@@ -1422,7 +1422,10 @@ namespace GaldrJson.Tests
 
             var exception = Assert.Throws<JsonException>(() =>
             {
-                string json = GaldrJson.Serialize(person);
+                string json = GaldrJson.Serialize(person, new GaldrJsonOptions()
+                {
+                    DetectCycles = true
+                });
             });
 
             Assert.Contains("cycle", exception.Message);

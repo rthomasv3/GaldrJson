@@ -22,21 +22,22 @@ namespace GaldrJson.SourceGeneration
         {
             var baseTypeName = GetBaseTypeName(Metadata.Symbol);
             var converterName = $"{baseTypeName}JsonConverter";
+            var methodName = $"WriteWithConverter_{Metadata.SafeName}";
 
             // If we have a property name, write it first
             if (nameOverride != null)
             {
                 return $@"{writerVar}.WritePropertyName(""{nameOverride}"");
-            GeneratedJsonSerializer.WriteWithConverter({writerVar}, {valueExpr}, typeof({Metadata.FullyQualifiedName}), options, Tracker);";
+            GeneratedJsonSerializer.{methodName}({writerVar}, {valueExpr}, options, Tracker);";
             }
             else if (propertyName != null)
             {
                 return $@"{writerVar}.WritePropertyName(NameHelpers.GetPropertyName(""{propertyName}"", options));
-            GeneratedJsonSerializer.WriteWithConverter({writerVar}, {valueExpr}, typeof({Metadata.FullyQualifiedName}), options, Tracker);";
+            GeneratedJsonSerializer.{methodName}({writerVar}, {valueExpr}, options, Tracker);";
             }
             else
             {
-                return $"GeneratedJsonSerializer.WriteWithConverter({writerVar}, {valueExpr}, typeof({Metadata.FullyQualifiedName}), options, Tracker);";
+                return $"GeneratedJsonSerializer.{methodName}({writerVar}, {valueExpr}, options, Tracker);";
             }
         }
 
