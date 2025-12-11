@@ -197,6 +197,8 @@ namespace GaldrJson.Tests
         public int PersonAge { get; set; }
         [GaldrJsonPropertyName("town")]
         public string City { get; set; }
+        [GaldrJsonIgnore]
+        public string ShouldIgnore { get; set; }
     }
 
     #endregion
@@ -1176,6 +1178,21 @@ namespace GaldrJson.Tests
 
             Assert.DoesNotContain("city", json);
             Assert.Contains("town", json);
+        }
+
+        [TestMethod]
+        public void TestIgnore()
+        {
+            var model = new NameCasingModel
+            {
+                FirstName = "John",
+                LastName = "Doe",
+                PersonAge = 30,
+            };
+
+            string json = GaldrJson.Serialize(model);
+
+            Assert.DoesNotContain("ShouldIgnore", json);
         }
 
         [TestMethod]
