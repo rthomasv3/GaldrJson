@@ -7,7 +7,7 @@
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <Description>Blazing-fast, AOT-native JSON serialization for .NET</Description>
     <Copyright>Copyright © Robert Thomas 2025</Copyright>
-    <VersionPrefix>1.0.0</VersionPrefix>
+    <VersionPrefix>1.0.1</VersionPrefix>
     <Authors>Robert Thomas</Authors>
     <RepositoryUrl>https://github.com/rthomasv3/GaldrJson</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
