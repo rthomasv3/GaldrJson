@@ -6,14 +6,14 @@ GaldrJson is a high-performance JSON serialization library that uses source gene
 
 ## Features
 
-✓ **Zero Reflection** - All serialization code is generated at compile time  
-✓ **Native AOT Ready** - Full compatibility with Native AOT compilation  
-✓ **High Performance** - Competitive with System.Text.Json, faster than Newtonsoft.Json  
-✓ **Simple API** - Minimal configuration, maximum productivity  
-✓ **Flexible Naming Policies** - camelCase, snake_case, kebab-case, exact, or custom
-✓ **ASP.NET Core Integration** - First-class support for Minimal APIs  
-✓ **Comprehensive Type Support** - Primitives, collections, dictionaries, nested objects, nullables, enums  
-✓ **Cycle Detection** - Optional circular reference detection
+**Zero Reflection** - All serialization code is generated at compile time
+**Native AOT Ready** - Full compatibility with Native AOT compilation
+**High Performance** - Competitive with System.Text.Json, faster than Newtonsoft.Json
+**Simple API** - Minimal configuration, maximum productivity
+**Flexible Naming Policies** - camelCase, snake_case, kebab-case, exact, or custom
+**ASP.NET Core Integration** - First-class support for Minimal APIs
+**Comprehensive Type Support** - Primitives, collections, dictionaries, nested objects, nullables, enums
+**Cycle Detection** - Optional circular reference detection
 
 ## Installation
 
