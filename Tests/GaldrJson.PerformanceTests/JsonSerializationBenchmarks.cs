@@ -9,18 +9,22 @@ namespace GaldrJson.PerformanceTests;
 [MemoryDiagnoser]
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]
 [RankColumn]
+[SimpleJob(iterationCount: 25)]
 public class JsonSerializationBenchmarks
 {
     private ProductCatalog _testData;
     private string _jsonString;
     private GaldrJsonOptions _galdrJsonOptions;
     private JsonSerializerOptions _jsonSerializerOptions;
+    private JsonSerializerOptions _jsonSerializerOptionsSourceGen;
     private JsonSerializerSettings _jsonSerializerSettings;
 
     [GlobalSetup]
     public void Setup()
     {
-        // Generate test data once for all benchmarks
+        // Test data: 50 products with nested details (manufacturer, dimensions)
+        //            30 orders with 1-5 items each, addresses, status enums
+        //            Dictionaries, lists, nullable types, dates, decimals
         _testData = TestDataGenerator.GenerateCatalog(productCount: 50, orderCount: 30);
 
         // Pre-serialize for deserialization tests
@@ -41,6 +45,15 @@ public class JsonSerializationBenchmarks
             PropertyNamingPolicy = null,
             WriteIndented = false,
             ReferenceHandler = ReferenceHandler.Preserve,
+        };
+
+        _jsonSerializerOptionsSourceGen = new JsonSerializerOptions()
+        {
+            PropertyNameCaseInsensitive = false,
+            PropertyNamingPolicy = null,
+            WriteIndented = false,
+            ReferenceHandler = ReferenceHandler.Preserve,
+            TypeInfoResolver = SourceGenerationContext.Default
         };
 
         _jsonSerializerSettings = new JsonSerializerSettings()
@@ -66,6 +79,12 @@ public class JsonSerializationBenchmarks
         return System.Text.Json.JsonSerializer.Serialize(_testData, _jsonSerializerOptions);
     }
 
+    [Benchmark(Description = "Serialize (System.Text.Json Source Gen)")]
+    public string Serialize_SystemTextJson_SourceGen()
+    {
+        return System.Text.Json.JsonSerializer.Serialize(_testData, _jsonSerializerOptionsSourceGen);
+    }
+
     [Benchmark(Description = "Serialize (GaldrJson)")]
     public string Serialize_GaldrJson()
     {
@@ -86,6 +105,12 @@ public class JsonSerializationBenchmarks
     public ProductCatalog Deserialize_SystemTextJson()
     {
         return System.Text.Json.JsonSerializer.Deserialize<ProductCatalog>(_jsonString, _jsonSerializerOptions);
+    }
+
+    [Benchmark(Description = "Deserialize (System.Text.Json Source Gen)")]
+    public ProductCatalog Deserialize_SystemTextJson_SourceGen()
+    {
+        return System.Text.Json.JsonSerializer.Deserialize<ProductCatalog>(_jsonString, _jsonSerializerOptionsSourceGen);
     }
 
     [Benchmark(Description = "Deserialize (GaldrJson)")]

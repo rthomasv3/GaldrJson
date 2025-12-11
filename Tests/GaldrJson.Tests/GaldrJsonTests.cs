@@ -742,7 +742,11 @@ namespace GaldrJson.Tests
                 PropertyNamingPolicy = PropertyNamingPolicy.CamelCase,
                 WriteIndented = false
             });
-            var deserialized = GaldrJson.Deserialize<DataModel>(json);
+            var deserialized = GaldrJson.Deserialize<DataModel>(json, new GaldrJsonOptions()
+            {
+                PropertyNamingPolicy = PropertyNamingPolicy.CamelCase,
+                WriteIndented = false
+            });
 
             Assert.IsNotNull(deserialized.ByteArray);
             Assert.IsNotNull(deserialized.ByteList);
@@ -1300,9 +1304,9 @@ namespace GaldrJson.Tests
         public void TestInitProperties_Deserialize()
         {
             string json = @"{
-                ""id"": 123,
-                ""name"": ""Widget"",
-                ""price"": 49.95
+                ""Id"": 123,
+                ""Name"": ""Widget"",
+                ""Price"": 49.95
             }";
 
             var result = GaldrJson.Deserialize<InitPropertyTestModel>(json);
@@ -1405,7 +1409,7 @@ namespace GaldrJson.Tests
         {
             // Test that missing properties get default values
             string json = @"{
-                ""id"": 123
+                ""Id"": 123
             }";
 
             var result = GaldrJson.Deserialize<InitPropertyTestModel>(json);
@@ -1441,11 +1445,11 @@ namespace GaldrJson.Tests
         public void TestInitProperties_ExtraPropertiesIgnored()
         {
             string json = @"{
-                ""id"": 123,
-                ""name"": ""Test"",
-                ""price"": 99.99,
-                ""unknownProperty"": ""should be ignored"",
-                ""anotherUnknown"": 12345
+                ""Id"": 123,
+                ""Name"": ""Test"",
+                ""Price"": 99.99,
+                ""UnknownProperty"": ""should be ignored"",
+                ""AnotherUnknown"": 12345
             }";
 
             var result = GaldrJson.Deserialize<InitPropertyTestModel>(json);

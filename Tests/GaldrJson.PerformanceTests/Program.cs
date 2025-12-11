@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json.Serialization;
 using BenchmarkDotNet.Running;
 
 namespace GaldrJson.PerformanceTests;
@@ -17,3 +18,6 @@ internal class Program
         Console.WriteLine("Benchmark complete!");
     }
 }
+
+[JsonSerializable(typeof(ProductCatalog))]
+internal partial class SourceGenerationContext : JsonSerializerContext { }

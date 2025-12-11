@@ -28,7 +28,7 @@
         /// <summary>
         /// Whether property name matching during deserialization is case-insensitive.
         /// </summary>
-        public bool PropertyNameCaseInsensitive { get; set; } = true;
+        public bool PropertyNameCaseInsensitive { get; set; } = false;
 
         /// <summary>
         /// Determines if a <see cref="ReferenceTracker"/> is used to detect cycles when serializing JSON.
