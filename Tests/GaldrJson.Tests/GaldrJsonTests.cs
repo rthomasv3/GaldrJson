@@ -189,13 +189,14 @@ namespace GaldrJson.Tests
 
     #region Property Name Test Models
 
-    // Note: These would require GaldrJsonPropertyName attribute if implemented
     [GaldrJsonSerializable]
-    public class CamelCaseModel
+    public class NameCasingModel
     {
         public string FirstName { get; set; }
         public string LastName { get; set; }
         public int PersonAge { get; set; }
+        [GaldrJsonPropertyName("town")]
+        public string City { get; set; }
     }
 
     #endregion
@@ -1062,21 +1063,111 @@ namespace GaldrJson.Tests
     public class PropertyNamingTests
     {
         [TestMethod]
+        public void TestExactNaming()
+        {
+            var model = new NameCasingModel
+            {
+                FirstName = "John",
+                LastName = "Doe",
+                PersonAge = 30,
+            };
+
+            string json = GaldrJson.Serialize(model);
+
+            Assert.Contains("FirstName", json);
+            Assert.Contains("LastName", json);
+            Assert.Contains("PersonAge", json);
+        }
+
+        [TestMethod]
         public void TestCamelCaseNaming()
         {
-            var model = new CamelCaseModel
+            var model = new NameCasingModel
             {
                 FirstName = "John",
                 LastName = "Doe",
                 PersonAge = 30
             };
 
+            string json = GaldrJson.Serialize(model, new GaldrJsonOptions()
+            {
+                PropertyNamingPolicy = PropertyNamingPolicy.CamelCase
+            });
+
+            Assert.Contains("firstName", json);
+            Assert.Contains("lastName", json);
+            Assert.Contains("personAge", json);
+        }
+
+        [TestMethod]
+        public void TestSnakeCaseNaming()
+        {
+            var model = new NameCasingModel
+            {
+                FirstName = "John",
+                LastName = "Doe",
+                PersonAge = 30
+            };
+
+            string json = GaldrJson.Serialize(model, new GaldrJsonOptions()
+            {
+                PropertyNamingPolicy = PropertyNamingPolicy.SnakeCase
+            });
+
+            Assert.Contains("first_name", json);
+            Assert.Contains("last_name", json);
+            Assert.Contains("person_age", json);
+        }
+
+        [TestMethod]
+        public void TestKebabCaseNaming()
+        {
+            var model = new NameCasingModel
+            {
+                FirstName = "John",
+                LastName = "Doe",
+                PersonAge = 30
+            };
+
+            string json = GaldrJson.Serialize(model, new GaldrJsonOptions()
+            {
+                PropertyNamingPolicy = PropertyNamingPolicy.KebabCase
+            });
+
+            Assert.Contains("first-name", json);
+            Assert.Contains("last-name", json);
+            Assert.Contains("person-age", json);
+        }
+
+        [TestMethod]
+        public void TestCustomNaming()
+        {
+            var model = new NameCasingModel
+            {
+                FirstName = "John",
+                LastName = "Doe",
+                PersonAge = 30,
+                City = "this should not match the property name"
+            };
+
             string json = GaldrJson.Serialize(model);
 
-            // Properties should be camelCase in JSON by default
-            Assert.IsTrue(json.Contains("firstName") || json.Contains("FirstName"));
-            Assert.IsTrue(json.Contains("lastName") || json.Contains("LastName"));
-            Assert.IsTrue(json.Contains("personAge") || json.Contains("PersonAge"));
+            Assert.DoesNotContain("city", json);
+            Assert.Contains("town", json);
+        }
+
+        [TestMethod]
+        public void TestCustomNaming_RoundTrip()
+        {
+            var original = new NameCasingModel
+            {
+                City = "this should not match the property name"
+            };
+
+            string json = GaldrJson.Serialize(original);
+            var deserialized = GaldrJson.Deserialize<NameCasingModel>(json);
+
+            Assert.AreEqual(original.City, deserialized.City);
         }
     }
 

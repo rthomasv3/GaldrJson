@@ -691,13 +691,17 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
 
             builder.AppendLine();
 
-            using (builder.Block("public static bool MatchesPropertyNameUtf8(System.ReadOnlySpan<byte> jsonPropertyName, byte[] exactName, byte[] camelName, byte[] snakeName, byte[] kebabName, System.Text.Json.JsonSerializerOptions options)"))
+            using (builder.Block("public static bool MatchesPropertyNameUtf8(System.ReadOnlySpan<byte> jsonPropertyName, byte[] exactName, byte[] camelName, byte[] snakeName, byte[] kebabName, byte[] customName, System.Text.Json.JsonSerializerOptions options)"))
             {
                 builder.AppendLine("// Select the correct name variant based on naming policy");
                 builder.AppendLine("byte[] expectedName;");
                 builder.AppendLine();
 
-                using (builder.Block("if (options.PropertyNamingPolicy == System.Text.Json.JsonNamingPolicy.CamelCase)"))
+                using (builder.Block("if (customName != null)"))
+                {
+                    builder.AppendLine("expectedName = customName;");
+                }
+                using (builder.Block("else if (options.PropertyNamingPolicy == System.Text.Json.JsonNamingPolicy.CamelCase)"))
                 {
                     builder.AppendLine("expectedName = camelName;");
                 }
@@ -1178,6 +1182,15 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
                     builder.AppendLine($"private static readonly byte[] Prop_{prop.Name}_Camel = System.Text.Encoding.UTF8.GetBytes(\"{camelName}\");");
                     builder.AppendLine($"private static readonly byte[] Prop_{prop.Name}_Snake = System.Text.Encoding.UTF8.GetBytes(\"{snakeName}\");");
                     builder.AppendLine($"private static readonly byte[] Prop_{prop.Name}_Kebab = System.Text.Encoding.UTF8.GetBytes(\"{kebabName}\");");
+
+                    if (!string.IsNullOrEmpty(prop.JsonName))
+                    {
+                        builder.AppendLine($"private static readonly byte[] Prop_{prop.Name}_Custom = System.Text.Encoding.UTF8.GetBytes(\"{prop.JsonName}\");");
+                    }
+                    else
+                    {
+                        builder.AppendLine($"private static readonly byte[] Prop_{prop.Name}_Custom = null;");
+                    }
                 }
 
                 builder.AppendLine();
@@ -1227,14 +1240,14 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
 
                             if (i == 0)
                             {
-                                using (builder.Block($"if (NameHelpers.MatchesPropertyNameUtf8(propertyName, Prop_{prop.Name}_Exact, Prop_{prop.Name}_Camel, Prop_{prop.Name}_Snake, Prop_{prop.Name}_Kebab, options))"))
+                                using (builder.Block($"if (NameHelpers.MatchesPropertyNameUtf8(propertyName, Prop_{prop.Name}_Exact, Prop_{prop.Name}_Camel, Prop_{prop.Name}_Snake, Prop_{prop.Name}_Kebab, Prop_{prop.Name}_Custom, options))"))
                                 {
                                     GeneratePropertyReadToTempVar(builder, prop, metadataCache);
                                 }
                             }
                             else
                             {
-                                using (builder.Block($"else if (NameHelpers.MatchesPropertyNameUtf8(propertyName, Prop_{prop.Name}_Exact, Prop_{prop.Name}_Camel, Prop_{prop.Name}_Snake, Prop_{prop.Name}_Kebab, options))"))
+                                using (builder.Block($"else if (NameHelpers.MatchesPropertyNameUtf8(propertyName, Prop_{prop.Name}_Exact, Prop_{prop.Name}_Camel, Prop_{prop.Name}_Snake, Prop_{prop.Name}_Kebab, Prop_{prop.Name}_Custom, options))"))
                                 {
                                     GeneratePropertyReadToTempVar(builder, prop, metadataCache);
                                 }
