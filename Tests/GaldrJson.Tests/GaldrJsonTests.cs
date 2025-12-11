@@ -313,6 +313,24 @@ namespace GaldrJson.Tests
 
     #endregion
 
+    #region Readonly Props Tests
+
+    [GaldrJsonSerializable]
+    public class LibraryResult
+    {
+        public string Title { get; set; }
+        public string Subtitle { get; set; }
+        public string FullTitle
+        {
+            get
+            {
+                return String.IsNullOrWhiteSpace(Subtitle) ? Title : $"{Title}: {Subtitle}";
+            }
+        }
+    }
+
+    #endregion
+
     // ============================================================================
     // TESTS
     // ============================================================================
@@ -1542,6 +1560,30 @@ namespace GaldrJson.Tests
             string json = GaldrJson.Serialize(person);
             Assert.IsNotNull(json);
             Assert.Contains("John", json);
+        }
+    }
+
+    [TestClass]
+    public class ReadonlyPropTests
+    {
+        [TestMethod]
+        public void TestReadonlyProps_RoundTrip()
+        {
+            var model = new LibraryResult()
+            {
+                Title = "This is a test",
+                Subtitle = "Of Readonly Props",
+                // FullTitle => "Title: Subtitle"
+            };
+
+            string json = GaldrJson.Serialize(model);
+            var deserialized = GaldrJson.Deserialize<LibraryResult>(json);
+
+            Assert.IsNotNull(deserialized);
+            Assert.Contains("FullTitle", json);
+            Assert.AreEqual(model.Title, deserialized.Title);
+            Assert.AreEqual(model.Subtitle, deserialized.Subtitle);
+            Assert.AreEqual(model.FullTitle, deserialized.FullTitle);
         }
     }
 }

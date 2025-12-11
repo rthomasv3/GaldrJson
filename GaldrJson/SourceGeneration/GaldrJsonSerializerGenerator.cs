@@ -1142,14 +1142,15 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
             builder.AppendLine("internal ReferenceTracker Tracker { get; set; }");
             builder.AppendLine();
 
-            // Generate UTF-8 property name constants for each writable property
             var writableProps = typeInfo.Properties.Where(p => p.CanWrite).ToList();
 
-            if (writableProps.Count > 0)
+            // Generate UTF-8 property name constants for each property
+
+            if (typeInfo.Properties.Count > 0)
             {
                 builder.AppendLine("// UTF-8 encoded property names for fast comparison");
 
-                foreach (var prop in writableProps)
+                foreach (var prop in typeInfo.Properties)
                 {
                     string exactName = prop.Name;
                     string camelName = ToCamelCase(prop.Name);
@@ -1187,7 +1188,7 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
                 builder.AppendLine();
 
                 // Declare temp variables for all writable properties
-                foreach (PropertyInfo prop in typeInfo.Properties.Where(p => p.CanWrite))
+                foreach (PropertyInfo prop in writableProps)
                 {
                     var propertyMetadata = metadataCache.GetOrCreate(prop.TypeSymbol);
                     builder.AppendLine($"{propertyMetadata.FullyQualifiedName} {GetTempVarName(prop.Name)} = default;");
@@ -1208,13 +1209,11 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
                     builder.AppendLine("reader.Read();");
                     builder.AppendLine();
 
-                    List<PropertyInfo> properties = typeInfo.Properties.Where(p => p.CanWrite).ToList();
-
-                    if (properties.Count > 0)
+                    if (writableProps.Count > 0)
                     {
-                        for (int i = 0; i < properties.Count; ++i)
+                        for (int i = 0; i < writableProps.Count; ++i)
                         {
-                            var prop = properties[i];
+                            var prop = writableProps[i];
 
                             if (i == 0)
                             {
