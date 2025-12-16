@@ -1566,7 +1566,10 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
                     {
                         builder.AppendLine("// Clear before returning to prevent data leakage");
                         builder.AppendLine("System.Array.Clear(tempArray, 0, tempArray.Length);");
-                        builder.AppendLine("System.Buffers.ArrayPool<byte>.Shared.Return(tempArray);");
+                        using (builder.Block("if (maxByteCount <= ArrayPoolThreshold)"))
+                        {
+                            builder.AppendLine("System.Buffers.ArrayPool<byte>.Shared.Return(tempArray);");
+                        }
                     }
                 }
             }
