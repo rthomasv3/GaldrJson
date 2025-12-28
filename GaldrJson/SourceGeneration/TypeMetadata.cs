@@ -300,7 +300,7 @@ namespace GaldrJson.SourceGeneration
             return null;
         }
 
-        private static string GenerateSafeName(string typeName)
+        public static string GenerateSafeName(string typeName)
         {
             return typeName
                 .Replace("global::", "")

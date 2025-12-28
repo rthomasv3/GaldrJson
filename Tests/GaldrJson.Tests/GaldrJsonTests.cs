@@ -799,6 +799,23 @@ namespace GaldrJson.Tests
             CollectionAssert.AreEqual(original.ByteArray, deserialized.ByteArray);
             CollectionAssert.AreEqual(original.ByteList, deserialized.ByteList);
         }
+
+        [TestMethod]
+        public void TestCollection_DirectType()
+        {
+            List<DateAndTimeModel> collection = new()
+            {
+                new DateAndTimeModel
+                {
+                    DateTime = DateTime.Now,
+                    DateTimeOffset = DateTimeOffset.Now,
+                    TimeSpan = TimeSpan.FromHours(1)
+                },
+            };
+            
+            string json = GaldrJson.Serialize(collection);
+            Assert.StartsWith("[", json);
+        }
     }
 
     [TestClass]

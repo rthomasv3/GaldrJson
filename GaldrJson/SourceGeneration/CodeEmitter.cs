@@ -67,7 +67,7 @@ namespace GaldrJson.SourceGeneration
             if (property == null)
                 return null;  // Array element case - no property name
 
-            return $"NameHelpers.GetPropertyNameUtf8(Prop_{property.Name}_Exact, Prop_{property.Name}_Camel, Prop_{property.Name}_Snake, Prop_{property.Name}_Kebab, Prop_{property.Name}_Custom, options)";
+            return $"NameHelpers.GetPropertyName(Prop_{property.Name}_Exact, Prop_{property.Name}_Camel, Prop_{property.Name}_Snake, Prop_{property.Name}_Kebab, Prop_{property.Name}_Custom, options)";
         }
     }
 }

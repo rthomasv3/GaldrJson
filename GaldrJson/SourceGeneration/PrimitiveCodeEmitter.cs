@@ -64,10 +64,7 @@ namespace GaldrJson.SourceGeneration
             {
                 if (propNameExpr != null)
                 {
-                    return $@"if ({valueExpr} != null)
-                {writerVar}.{WriterMethods.WriteString}({propNameExpr}, {valueExpr});
-            else
-                {writerVar}.{WriterMethods.WriteNull}({propNameExpr});";
+                    return $"{writerVar}.{WriterMethods.WriteString}({propNameExpr}, {valueExpr});";
                 }
                 else
                 {
