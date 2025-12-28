@@ -266,6 +266,29 @@ IterationCount=25
 | 'Deserialize (Newtonsoft.Json)'             | 146.07 us | 2.361 us | 3.151 us |    6 |  6.3477 |  1.2207 |       - | 106.24 KB |
 ```
 
+### Benchmark Results (camelCase Naming)
+
+```
+BenchmarkDotNet v0.15.8, Linux Fedora Linux 43 (Workstation Edition)
+AMD Ryzen AI 7 PRO 350 w/ Radeon 860M 1.41GHz, 1 CPU, 16 logical and 8 physical cores
+.NET SDK 10.0.101
+  [Host]     : .NET 10.0.1 (10.0.1, 10.0.125.57005), X64 RyuJIT x86-64-v4 [AttachedDebugger]
+  Job-FBVPNM : .NET 10.0.1 (10.0.1, 10.0.125.57005), X64 RyuJIT x86-64-v4
+
+IterationCount=25  
+
+| Method                                      | Mean     | Error   | StdDev   | Rank | Gen0    | Gen1    | Gen2    | Allocated |
+|-------------------------------------------- |---------:|--------:|---------:|-----:|--------:|--------:|--------:|----------:|
+| 'Serialize (GaldrJson)'                     | 169.6 us | 2.53 us |  3.38 us |    1 | 26.8555 | 26.8555 | 26.8555 |  83.42 KB |
+| 'Deserialize (GaldrJson)'                   | 178.9 us | 2.41 us |  3.14 us |    2 |  8.0566 |  1.2207 |       - |  66.66 KB |
+| 'Serialize (System.Text.Json)'              | 185.5 us | 6.38 us |  8.51 us |    2 | 26.8555 | 26.8555 | 26.8555 |  83.51 KB |
+| 'Serialize (System.Text.Json Source Gen)'   | 189.4 us | 3.05 us |  3.74 us |    2 | 26.8555 | 26.8555 | 26.8555 |  83.52 KB |
+| 'Deserialize (System.Text.Json Source Gen)' | 226.1 us | 2.19 us |  2.78 us |    3 |  8.3008 |  1.4648 |       - |  69.27 KB |
+| 'Deserialize (System.Text.Json)'            | 232.0 us | 2.33 us |  2.94 us |    3 |  8.3008 |  1.4648 |       - |  69.27 KB |
+| 'Serialize (Newtonsoft.Json)'               | 321.3 us | 8.29 us | 10.18 us |    4 | 26.8555 | 26.8555 | 26.8555 | 231.89 KB |
+| 'Deserialize (Newtonsoft.Json)'             | 392.0 us | 3.71 us |  4.69 us |    5 | 12.6953 |  1.9531 |       - | 106.24 KB |
+```
+
 ### Benchmark Results (Cycle Detection On)
 
 ```

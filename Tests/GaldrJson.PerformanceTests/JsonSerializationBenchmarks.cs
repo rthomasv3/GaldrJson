@@ -1,8 +1,8 @@
 ﻿using System.Text.Json;
-using System.Text.Json.Serialization;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Order;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 
 namespace GaldrJson.PerformanceTests;
 
@@ -22,45 +22,50 @@ public class JsonSerializationBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        // Test data: 50 products with nested details (manufacturer, dimensions)
-        //            30 orders with 1-5 items each, addresses, status enums
-        //            Dictionaries, lists, nullable types, dates, decimals
-        _testData = TestDataGenerator.GenerateCatalog(productCount: 50, orderCount: 30);
-
-        // Pre-serialize for deserialization tests
-        // Using System.Text.Json as the baseline serializer for fairness
-        _jsonString = System.Text.Json.JsonSerializer.Serialize(_testData);
-
         _galdrJsonOptions = new GaldrJsonOptions()
         {
             PropertyNameCaseInsensitive = false,
-            PropertyNamingPolicy = PropertyNamingPolicy.Exact,
+            PropertyNamingPolicy = PropertyNamingPolicy.CamelCase,
             WriteIndented = false,
-            DetectCycles = true,
+            //DetectCycles = true,
         };
 
         _jsonSerializerOptions = new JsonSerializerOptions()
         {
             PropertyNameCaseInsensitive = false,
-            PropertyNamingPolicy = null,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = false,
-            ReferenceHandler = ReferenceHandler.Preserve,
+            //ReferenceHandler = ReferenceHandler.Preserve,
         };
 
         _jsonSerializerOptionsSourceGen = new JsonSerializerOptions()
         {
             PropertyNameCaseInsensitive = false,
-            PropertyNamingPolicy = null,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = false,
-            ReferenceHandler = ReferenceHandler.Preserve,
+            //ReferenceHandler = ReferenceHandler.Preserve,
             TypeInfoResolver = SourceGenerationContext.Default
         };
 
+        DefaultContractResolver contractResolver = new DefaultContractResolver
+        {
+            NamingStrategy = new CamelCaseNamingStrategy()
+        };
         _jsonSerializerSettings = new JsonSerializerSettings()
         {
+            ContractResolver = contractResolver,
             Formatting = Formatting.None,
-            ReferenceLoopHandling = ReferenceLoopHandling.Error,
+            //ReferenceLoopHandling = ReferenceLoopHandling.Error,
         };
+        
+        // Test data: 50 products with nested details (manufacturer, dimensions)
+        //            30 orders with 1-5 items each, addresses, status enums
+        //            Dictionaries, lists, nullable types, dates, decimals
+        _testData = TestDataGenerator.GenerateCatalog(productCount: 50, orderCount: 30);
+        
+        // Pre-serialize for deserialization tests
+        // Using System.Text.Json as the baseline serializer for fairness
+        _jsonString = System.Text.Json.JsonSerializer.Serialize(_testData, _jsonSerializerOptions);
     }
 
     // ========================================================================
