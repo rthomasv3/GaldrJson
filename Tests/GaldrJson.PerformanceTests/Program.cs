@@ -12,7 +12,7 @@ internal class Program
         Console.WriteLine("=================================");
         Console.WriteLine();
 
-        var summary = BenchmarkRunner.Run<JsonSerializationBenchmarks>();
+        BenchmarkRunner.Run<JsonSerializationBenchmarks>();
 
         Console.WriteLine();
         Console.WriteLine("Benchmark complete!");
