@@ -32,5 +32,10 @@ namespace GaldrJson
         /// Reads the value using Utf8JsonReader.
         /// </summary>
         object Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options);
+
+        /// <summary>
+        /// Serializes an object directly to a Utf8JsonWriter.
+        /// </summary>
+        void SerializeTo(Utf8JsonWriter writer, object value, Type type, GaldrJsonOptions options);
     }
 }

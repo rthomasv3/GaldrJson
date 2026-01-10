@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json;
 
 namespace GaldrJson
 {
@@ -46,6 +47,60 @@ namespace GaldrJson
                 GaldrJsonSerializerRegistry.Serializer.CanSerialize(type))
             {
                 return GaldrJsonSerializerRegistry.Serializer.Serialize(value, type, options);
+            }
+
+            throw new NotSupportedException($"Type {type.FullName} is not registered for serialization. Add [GaldrJsonSerializable] attribute to the type.");
+        }
+
+        /// <summary>
+        /// Serializes the specified value directly to a Utf8JsonWriter.
+        /// </summary>
+        /// <typeparam name="T">The type of the value to serialize.</typeparam>
+        /// <param name="writer">The Utf8JsonWriter to write to.</param>
+        /// <param name="value">The value to serialize.</param>
+        /// <param name="options">Optional serialization settings.</param>
+        /// <exception cref="ArgumentNullException">Thrown when writer is null.</exception>
+        /// <exception cref="NotSupportedException">Thrown when the type is not registered for serialization.</exception>
+        public static void SerializeTo<T>(Utf8JsonWriter writer, T value, GaldrJsonOptions options = null)
+        {
+            if (writer == null)
+                throw new ArgumentNullException(nameof(writer));
+
+            if (options == null)
+                options = GaldrJsonOptions.Default;
+
+            if (GaldrJsonSerializerRegistry.Serializer != null &&
+                GaldrJsonSerializerRegistry.Serializer.CanSerialize(typeof(T)))
+            {
+                GaldrJsonSerializerRegistry.Serializer.SerializeTo(writer, value, typeof(T), options);
+                return;
+            }
+
+            throw new NotSupportedException($"Type {typeof(T).FullName} is not registered for serialization. Add [GaldrJsonSerializable] attribute to the type.");
+        }
+
+        /// <summary>
+        /// Serializes the specified value directly to a Utf8JsonWriter.
+        /// </summary>
+        /// <param name="writer">The Utf8JsonWriter to write to.</param>
+        /// <param name="value">The value to serialize.</param>
+        /// <param name="type">The type to use for serialization.</param>
+        /// <param name="options">Optional serialization settings.</param>
+        /// <exception cref="ArgumentNullException">Thrown when writer is null.</exception>
+        /// <exception cref="NotSupportedException">Thrown when the type is not registered for serialization.</exception>
+        public static void SerializeTo(Utf8JsonWriter writer, object value, Type type, GaldrJsonOptions options = null)
+        {
+            if (writer == null)
+                throw new ArgumentNullException(nameof(writer));
+
+            if (options == null)
+                options = GaldrJsonOptions.Default;
+
+            if (GaldrJsonSerializerRegistry.Serializer != null &&
+                GaldrJsonSerializerRegistry.Serializer.CanSerialize(type))
+            {
+                GaldrJsonSerializerRegistry.Serializer.SerializeTo(writer, value, type, options);
+                return;
             }
 
             throw new NotSupportedException($"Type {type.FullName} is not registered for serialization. Add [GaldrJsonSerializable] attribute to the type.");

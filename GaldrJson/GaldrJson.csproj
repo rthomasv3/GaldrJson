@@ -6,8 +6,8 @@
     <IncludeBuildOutput Condition="'$(IsPackable)' == 'true'">false</IncludeBuildOutput>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <Description>Blazing-fast, AOT-native JSON serialization for .NET</Description>
-    <Copyright>Copyright © Robert Thomas 2025</Copyright>
-    <VersionPrefix>1.0.3</VersionPrefix>
+    <Copyright>Copyright © Robert Thomas 2026</Copyright>
+    <VersionPrefix>1.1.0</VersionPrefix>
     <Authors>Robert Thomas</Authors>
     <RepositoryUrl>https://github.com/rthomasv3/GaldrJson</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -19,7 +19,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" PrivateAssets="all" />
-    <PackageReference Include="System.Text.Json" Version="10.0.0" />
+    <PackageReference Include="System.Text.Json" Version="10.0.1" />
   </ItemGroup>
 
   <ItemGroup>

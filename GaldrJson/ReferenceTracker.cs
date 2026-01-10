@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace GaldrJson
@@ -9,6 +10,9 @@ namespace GaldrJson
     /// </summary>
     public sealed class ReferenceTracker
     {
+        [ThreadStatic]
+        private static ReferenceTracker t_cached;
+
         private readonly HashSet<int> _hashCodes;
 
         /// <summary>
@@ -17,6 +21,29 @@ namespace GaldrJson
         public ReferenceTracker()
         {
             _hashCodes = new HashSet<int>();
+        }
+
+        /// <summary>
+        /// Rents a cached ReferenceTracker instance for the current thread.
+        /// </summary>
+        public static ReferenceTracker Rent()
+        {
+            ReferenceTracker tracker = t_cached;
+            if (tracker == null)
+            {
+                tracker = new ReferenceTracker();
+                t_cached = tracker;
+            }
+            tracker.Clear();
+            return tracker;
+        }
+
+        /// <summary>
+        /// Clears all tracked references.
+        /// </summary>
+        public void Clear()
+        {
+            _hashCodes.Clear();
         }
 
         /// <summary>
