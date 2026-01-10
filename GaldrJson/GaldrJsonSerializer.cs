@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json;
 
 namespace GaldrJson
 {
@@ -50,6 +51,25 @@ namespace GaldrJson
         public bool TrySerialize<T>(T value, out string json, GaldrJsonOptions options = null)
         {
             return TrySerialize(value, typeof(T), out json, options);
+        }
+
+        /// <inheritdoc />
+        public void SerializeTo<T>(Utf8JsonWriter writer, T value, GaldrJsonOptions options = null)
+        {
+            if (writer == null)
+                throw new ArgumentNullException(nameof(writer));
+
+            if (options == null)
+                options = GaldrJsonOptions.Default;
+
+            if (GaldrJsonSerializerRegistry.Serializer != null &&
+                GaldrJsonSerializerRegistry.Serializer.CanSerialize(typeof(T)))
+            {
+                GaldrJsonSerializerRegistry.Serializer.SerializeTo(writer, value, typeof(T), options);
+                return;
+            }
+
+            throw new NotSupportedException($"Type {typeof(T).FullName} is not registered for serialization. Add [GaldrJsonSerializable] attribute to the type.");
         }
 
         /// <inheritdoc />

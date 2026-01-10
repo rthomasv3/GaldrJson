@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json;
 
 namespace GaldrJson
 {
@@ -21,6 +22,11 @@ namespace GaldrJson
         /// Serializes the specified value to a JSON string.
         /// </summary>
         bool TrySerialize<T>(T value, out string json, GaldrJsonOptions options = null);
+
+        /// <summary>
+        /// Serializes the specified value directly to a Utf8JsonWriter.
+        /// </summary>
+        void SerializeTo<T>(Utf8JsonWriter writer, T value, GaldrJsonOptions options = null);
 
         /// <summary>
         /// Deserializes the JSON string to the specified type.
