@@ -47,6 +47,7 @@ public static class GaldrJsonServiceCollectionExtensions
             }
 
             options.SerializerOptions.Converters.Add(new GaldrJsonConverterFactory());
+            options.SerializerOptions.TypeInfoResolverChain.Insert(0, new GaldrJsonTypeInfoResolver());
 
             options.SerializerOptions.PropertyNamingPolicy = namingPolicy;
             options.SerializerOptions.WriteIndented = galdrJsonOptions?.WriteIndented ?? false;
