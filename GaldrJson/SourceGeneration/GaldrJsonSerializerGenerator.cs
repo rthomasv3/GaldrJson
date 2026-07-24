@@ -1208,7 +1208,11 @@ public class GaldrJsonSerializerGenerator : IIncrementalGenerator
                         using (builder.Indent())
                             builder.AppendLine("continue;");
                         builder.AppendLine();
-                        builder.AppendLine("System.ReadOnlySpan<byte> propertyName = reader.ValueSpan;");
+                        // ValueSpan is invalid (empty) when the name token spans buffer segments,
+                        // which happens on PipeReader-backed request bodies (ASP.NET binding) -
+                        // the property would silently vanish. The copy only happens on that rare
+                        // boundary case.
+                        builder.AppendLine("System.ReadOnlySpan<byte> propertyName = reader.HasValueSequence ? (System.ReadOnlySpan<byte>)System.Buffers.BuffersExtensions.ToArray(reader.ValueSequence) : reader.ValueSpan;");
                         builder.AppendLine("reader.Read();");
                         builder.AppendLine();
 
